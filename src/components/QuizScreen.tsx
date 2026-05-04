@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft } from 'lucide-react';
-import { questions, OptionId } from '../data/quizData';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { questions as questions_en, OptionId } from '../data/quizData';
+import { questions_he } from '../data/quizData.he';
+import { useLanguage } from '../contexts/LanguageContext';
+import { translations } from '../data/translations';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 interface QuizScreenProps {
   onComplete: (answers: Record<number, OptionId>) => void;
@@ -10,6 +14,10 @@ interface QuizScreenProps {
 export function QuizScreen({ onComplete }: QuizScreenProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, OptionId>>({});
+  const { language, dir } = useLanguage();
+  const t = translations[language];
+
+  const questions = language === 'he' ? questions_he : questions_en;
   
   const question = questions[currentQuestionIndex];
   const totalQuestions = questions.length;
@@ -45,20 +53,22 @@ export function QuizScreen({ onComplete }: QuizScreenProps) {
           disabled={currentQuestionIndex === 0}
           className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${currentQuestionIndex === 0 ? 'opacity-0 cursor-default' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}
         >
-          <ChevronLeft size={20} />
+          {dir === 'rtl' ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>
         <div className="flex-1 flex justify-center">
           <span className="text-xs font-bold tracking-widest text-slate-400 uppercase">
-            Question {currentQuestionIndex + 1} of {totalQuestions}
+            {t.questionXofY.replace('{current}', String(currentQuestionIndex + 1)).replace('{total}', String(totalQuestions))}
           </span>
         </div>
-        <div className="w-10"></div> {/* Spacer for centering */}
+        <div className="shrink-0 flex justify-end">
+          <LanguageSwitcher className="px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs md:text-sm" compact />
+        </div>
       </div>
 
       {/* Progress Bar Container */}
-      <div className="w-full bg-sky-100 h-1 overflow-hidden shrink-0">
+      <div className="w-full bg-sky-100 h-1 overflow-hidden shrink-0" dir="ltr">
         <motion.div 
-          className="bg-sky-600 h-full"
+          className="bg-sky-600 h-full origin-left rtl:origin-right"
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
           transition={{ duration: 0.3, ease: "easeOut" }}
@@ -70,7 +80,7 @@ export function QuizScreen({ onComplete }: QuizScreenProps) {
         <div className="w-full max-w-2xl">
           <AnimatePresence mode="wait">
             <motion.div
-              key={currentQuestionIndex}
+              key={currentQuestionIndex + language}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -78,7 +88,7 @@ export function QuizScreen({ onComplete }: QuizScreenProps) {
               className="flex flex-col h-full"
             >
               <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8 mb-6">
-                <h2 className="text-2xl md:text-3xl font-black text-[#002060] leading-tight">
+                <h2 className="text-2xl md:text-3xl font-black text-[#002060] leading-tight text-center md:text-start">
                   {question.text}
                 </h2>
               </div>
@@ -90,7 +100,7 @@ export function QuizScreen({ onComplete }: QuizScreenProps) {
                     <button
                       key={option.id}
                       onClick={() => handleSelectOption(option.id)}
-                      className={`text-left p-5 md:p-6 rounded-3xl border transition-all duration-200 ease-in-out flex items-start gap-4 ${
+                      className={`text-start rtl:text-right p-5 md:p-6 rounded-3xl border transition-all duration-200 ease-in-out flex items-start gap-4 ${
                         isSelected 
                           ? 'border-sky-600 bg-sky-50 text-sky-900 shadow-sm scale-[0.99]' 
                           : 'border-slate-200 bg-white text-slate-600 hover:border-sky-200 hover:bg-sky-50/50 hover:shadow-sm'

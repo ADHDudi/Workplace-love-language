@@ -9,14 +9,18 @@ import { WelcomeScreen } from './components/WelcomeScreen';
 import { QuizScreen } from './components/QuizScreen';
 import { ResultScreen } from './components/ResultScreen';
 import { OptionId } from './data/quizData';
+import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
+import { translations } from './data/translations';
 
 export type AppState = 'welcome' | 'quiz' | 'result';
 
-export default function App() {
+function AppContent() {
   const [appState, setAppState] = useState<AppState>('welcome');
   const [answers, setAnswers] = useState<Record<number, OptionId>>({});
   const [finalResult, setFinalResult] = useState<OptionId | null>(null);
   const [scores, setScores] = useState<Record<OptionId, number>>({ A: 0, B: 0, C: 0, D: 0, E: 0 });
+  const { language, setLanguage, dir } = useLanguage();
+  const t = translations[language];
 
   const startQuiz = () => {
     setAnswers({});
@@ -56,7 +60,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-slate-200 text-slate-900 font-sans flex justify-center items-center p-0 md:p-6 lg:p-12">
+    <div className="min-h-[100dvh] bg-slate-200 text-slate-900 font-sans flex justify-center items-center p-0 md:p-6 lg:p-12" dir={dir}>
       <div className="w-full max-w-5xl bg-slate-50 shadow-2xl md:rounded-[2.5rem] min-h-[100dvh] md:min-h-0 md:aspect-[4/3] md:max-h-[850px] relative overflow-hidden flex flex-col border border-slate-200/60">
         <AnimatePresence mode="wait">
           {appState === 'welcome' && (
@@ -98,5 +102,13 @@ export default function App() {
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <LanguageProvider>
+      <AppContent />
+    </LanguageProvider>
   );
 }
