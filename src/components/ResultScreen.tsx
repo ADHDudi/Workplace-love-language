@@ -128,15 +128,17 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
     if (!feedbackText.trim()) return;
     
     try {
-      await fetch('/api/feedback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ feedback: feedbackText }),
+      const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
+      const { db, auth } = await import('../lib/firebase');
+      
+      await addDoc(collection(db, 'feedbacks'), {
+        text: feedbackText.trim(),
+        createdAt: serverTimestamp()
       });
     } catch(err) {
       console.error("Failed to send feedback", err);
+      const { handleFirestoreError, OperationType } = await import('../lib/firebaseErrors');
+      handleFirestoreError(err, OperationType.CREATE, 'feedbacks');
     }
 
     setFeedbackSent(true);

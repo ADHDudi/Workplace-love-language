@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Basic helper function for string validation
+    function isValidString(text, maxLen) {
+      return text is string && text.size() > 0 && text.size() <= maxLen;
+    }
+
+    match /feedbacks/{feedbackId} {
+      allow read: if false; // Only admins can read, admin not implemented in app
+      allow create: if isValidString(request.resource.data.text, 5000)
+                    && request.resource.data.keys().hasAll(['text', 'createdAt'])
+                    && request.resource.data.keys().size() == 2
+                    && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+  }
+}

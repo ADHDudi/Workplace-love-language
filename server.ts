@@ -17,17 +17,8 @@ async function startServer() {
   app.post("/api/feedback", (req, res) => {
     const feedback = req.body.feedback;
     if (feedback) {
-      const timestamp = new Date().toISOString();
-      const entry = `[${timestamp}] ${feedback}\n----------------------------------------\n`;
-      const filePath = path.join(process.cwd(), "feedback.txt");
-      
-      fs.appendFile(filePath, entry, (err) => {
-        if (err) {
-          console.error("Failed to write feedback to file:", err);
-          return res.status(500).json({ error: "Failed to write feedback" });
-        }
-        res.json({ success: true });
-      });
+      console.debug(`[FEEDBACK RECEIVED] ${feedback}`);
+      res.json({ success: true });
     } else {
       res.status(400).json({ error: "No feedback provided" });
     }
