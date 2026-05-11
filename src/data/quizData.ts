@@ -139,7 +139,7 @@ export const results: Record<OptionId, ResultType> = {
     insights: "In a tech environment (PMs, Managers), you thrive when communication is clear, constructive, and appreciative. You define success not just by shipping products, but by the qualitative validation of your approach and strategies.",
     tips: [
       "Ask your manager for regular, constructive feedback during 1:1s.",
-      "As a PM, foster a culture of positive reinforcement during sprint retrospectives.",
+      "Foster a culture of positive reinforcement during sprint retrospectives.",
       "Acknowledge the specific contributions of engineers and designers out loud in stand-ups."
     ],
     userManualTemplate: "Hi team! 👋 I recently took a 'Workplace Love Language' assessment and discovered my primary style is Words of Affirmation (Feedback + Mentorship). 💬\n\nAt work, I thrive when communication is clear, constructive, and appreciative. I value qualitative validation and feel most motivated when I receive regular, constructive feedback during 1:1s or when specific contributions are acknowledged in syncs.\n\nI'm always open to feedback to improve my skills and help our team succeed!",
@@ -157,7 +157,7 @@ export const results: Record<OptionId, ResultType> = {
     insights: "Tech projects can be incredibly isolating, even in agile teams. You are the glue that holds cross-functional teams together. You value psychological safety born out of genuine personal connections over purely transactional interactions.",
     tips: [
       "Schedule virtual or in-person coffee chats not focused on project status.",
-      "For Managers: dedicate the first 5 minutes of your syncs to human connection.",
+      "Dedicate the first 5 minutes of your syncs to human connection.",
       "Create spaces (like Slack channels) dedicated to non-work interests to build camaraderie."
     ],
     userManualTemplate: "Hi team! 👋 I recently took a 'Workplace Love Language' assessment and discovered my primary style is Quality Time (Workplace Bonding). ☕\n\nI deeply value psychological safety and genuine personal connections with my teammates. While I'm dedicated to our projects, I feel most supported when we take a few minutes to connect on a human level during 1:1s or informal coffee chats, rather than purely transactional interactions.\n\nLooking forward to building great things together!",
@@ -175,7 +175,7 @@ export const results: Record<OptionId, ResultType> = {
     insights: "For you, trust is demonstrated through investment in your growth. In a tech org, your 'gifts' are high-visibility projects, access to new tools, or sponsorship to attend a major conference. You are driven by intellectual challenges.",
     tips: [
       "Voice your ambition explicitly to product leadership; make your desired career path known.",
-      "Managers should reward top performers by delegating high-impact, strategic work, not just more volume.",
+      "Reward top performers by delegating high-impact, strategic work, not just more volume.",
       "Frame team successes around the new capabilities and opportunities they unlock for the division."
     ],
     userManualTemplate: "Hi team! 👋 I recently took a 'Workplace Love Language' assessment and discovered my primary style is Receiving Gifts (New Opportunities + Challenges). 🎁\n\nIn our tech environment, my 'gifts' are high-visibility projects, access to new tools, or opportunities to learn new skills. I'm highly motivated by intellectual challenges, and trust is demonstrated to me through investment in my professional growth.\n\nPlease feel free to send new opportunities and strategic challenges my way!",
@@ -192,8 +192,8 @@ export const results: Record<OptionId, ResultType> = {
     meaning: "This language is for someone who really believes that actions speak louder than words. Support, in the workplace, might look like checking in with someone who is struggling or over-worked. Unlike some other love languages, support includes action.",
     insights: "In the fast-paced world of tech and product management, you value teammates who roll up their sleeves. Removing blockers, taking over a tedious Jira grooming session, or jumping in to help QA a feature speaks volumes to you.",
     tips: [
-      "When a PM or Engineer is overwhelmed, step in and take a specific, actionable task off their plate.",
-      "Managers: actively seek to remove bureaucratic hurdles and streamline processes for your team.",
+      "When a teammate is overwhelmed, step in and take a specific, actionable task off their plate.",
+      "Actively seek to remove bureaucratic hurdles and streamline processes for your team.",
       "Show appreciation by honoring team members' time—be prepared for meetings and communicate clearly."
     ],
     userManualTemplate: "Hi team! 👋 I recently took a 'Workplace Love Language' assessment and discovered my primary style is Acts of Service (Support). 🤝\n\nFor me, actions speak louder than words. I deeply appreciate when teammates roll up their sleeves to help remove blockers, assist with tedious tasks, or streamline our processes.\n\nI also try to offer the same support! So if you're feeling overwhelmed, let me know how I can take a specific, actionable task off your plate!",
@@ -211,7 +211,7 @@ export const results: Record<OptionId, ResultType> = {
     insights: "You are energized by momentum, shared excitement, and visible camaraderie. While literal physical touch isn't the focus, high-fives (virtual or literal), celebratory emojis, and high-energy affirmations keep you engaged and valued.",
     tips: [
       "Celebrate small wins visually—use emojis, gifs, and celebratory messages in team chats.",
-      "Managers: check in frequently with brief, positive touchpoints rather than waiting for formal reviews.",
+      "Check in frequently with brief, positive touchpoints rather than waiting for formal reviews.",
       "Organize quick celebration rituals when a project milestone is met or a feature is shipped."
     ],
     userManualTemplate: "Hi team! 👋 I recently took a 'Workplace Love Language' assessment and discovered my primary style is Encouraging Touchpoints. ✨\n\nI am energized by momentum, shared excitement, and visible camaraderie. While I love diving deep into work, celebratory messages, visual wins, and high-energy affirmations keep me highly engaged and motivated.\n\nLet's make sure we frequently celebrate our milestones, big and small!",

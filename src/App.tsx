@@ -8,21 +8,23 @@ import { AnimatePresence, motion } from 'motion/react';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { QuizScreen } from './components/QuizScreen';
 import { ResultScreen } from './components/ResultScreen';
+import { LegalPage } from './components/LegalPage';
 import { OptionId } from './data/quizData';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
-import { translations } from './data/translations';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 export type AppState = 'welcome' | 'quiz' | 'result';
 
-function AppContent() {
+function MainApp() {
   const [appState, setAppState] = useState<AppState>('welcome');
   const [answers, setAnswers] = useState<Record<number, OptionId>>({});
   const [finalResult, setFinalResult] = useState<OptionId | null>(null);
   const [scores, setScores] = useState<Record<OptionId, number>>({ A: 0, B: 0, C: 0, D: 0, E: 0 });
-  const { language, setLanguage, dir } = useLanguage();
-  const t = translations[language];
+  const [userRole, setUserRole] = useState<'manager' | 'employee'>('employee');
+  const { dir } = useLanguage();
 
-  const startQuiz = () => {
+  const startQuiz = (role: 'manager' | 'employee') => {
+    setUserRole(role);
     setAnswers({});
     setScores({ A: 0, B: 0, C: 0, D: 0, E: 0 });
     setAppState('quiz');
@@ -84,7 +86,7 @@ function AppContent() {
               transition={{ duration: 0.3 }}
               className="absolute inset-0 flex flex-col bg-slate-50"
             >
-              <QuizScreen onComplete={handleComplete} />
+              <QuizScreen onComplete={handleComplete} userRole={userRole} />
             </motion.div>
           )}
           {appState === 'result' && finalResult && (
@@ -96,12 +98,25 @@ function AppContent() {
               transition={{ duration: 0.4 }}
               className="absolute inset-0 flex flex-col bg-slate-50"
             >
-              <ResultScreen resultId={finalResult} scores={scores} onRestart={restart} />
+              <ResultScreen resultId={finalResult} scores={scores} onRestart={restart} userRole={userRole} />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+function AppContent() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<MainApp />} />
+        <Route path="/terms" element={<LegalPage pageType="terms" />} />
+        <Route path="/privacy" element={<LegalPage pageType="privacy" />} />
+        <Route path="/accessibility" element={<LegalPage pageType="accessibility" />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

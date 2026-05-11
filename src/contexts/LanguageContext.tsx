@@ -9,13 +9,13 @@ interface LanguageContextType {
 }
 
 const LanguageContext = createContext<LanguageContextType>({
-  language: 'he',
+  language: 'en',
   setLanguage: () => {},
-  dir: 'rtl'
+  dir: 'ltr'
 });
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<Language>('he');
+  const [language, setLanguage] = useState<Language>('en');
   const dir = language === 'he' ? 'rtl' : 'ltr';
 
   useEffect(() => {

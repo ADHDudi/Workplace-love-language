@@ -1,12 +1,15 @@
-import { useState } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
-import { RotateCcw, HeartHandshake, Copy, Check, FileText, Info, MessageSquareHeart, Coffee, Gift, HelpingHand, Sparkles, Mail } from 'lucide-react';
+import { RotateCcw, HeartHandshake, Copy, Check, FileText, Info, MessageSquareHeart, Coffee, Gift, HelpingHand, Sparkles, Mail, Loader2 } from 'lucide-react';
 import { results as results_en, OptionId } from '../data/quizData';
 import { results_he } from '../data/quizData.he';
 import { useLanguage } from '../contexts/LanguageContext';
 import { translations } from '../data/translations';
+import { legalTranslations } from '../data/legalTranslations';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { GoogleGenAI } from "@google/genai";
+import { Link } from 'react-router-dom';
 
 const OptionIcons: Record<OptionId, any> = {
   A: MessageSquareHeart,
@@ -19,12 +22,14 @@ const OptionIcons: Record<OptionId, any> = {
 interface ResultScreenProps {
   resultId: OptionId;
   scores: Record<OptionId, number>;
+  userRole?: 'manager' | 'employee';
   onRestart: () => void;
 }
 
-export function ResultScreen({ resultId, scores, onRestart }: ResultScreenProps) {
+export function ResultScreen({ resultId, scores, userRole, onRestart }: ResultScreenProps) {
   const { language, dir } = useLanguage();
   const t = translations[language];
+  const l = legalTranslations[language].footer;
   const results = language === 'he' ? results_he : results_en;
   
   const result = results[resultId];
@@ -38,39 +43,527 @@ export function ResultScreen({ resultId, scores, onRestart }: ResultScreenProps)
 
   const scoreLabels = t.scoreLabels;
 
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackSent, setFeedbackSent] = useState(false);
+
+  const [dynamicInsights, setDynamicInsights] = useState<{insights: string, meaning: string, secondaryInsights: string, tips?: string[]} | null>(null);
+  const [isLoadingInsights, setIsLoadingInsights] = useState(false);
+
+  const manualText = `${result.userManualTemplate}\n\n${t.result.actionableTips}:\n${(dynamicInsights?.tips || result.tips).map(tip => `- ${tip}`).join('\n')}`;
+
   const handleCopy = () => {
-    navigator.clipboard.writeText(result.userManualTemplate).then(() => {
+    navigator.clipboard.writeText(manualText).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
   };
 
+  useEffect(() => {
+    async function fetchDynamicInsights() {
+      setIsLoadingInsights(true);
+      try {
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+          console.warn("GEMINI_API_KEY is missing. Using static insights.");
+          setIsLoadingInsights(false);
+          return;
+        }
+
+        const ai = new GoogleGenAI({ apiKey });
+        const languageName = language === 'he' ? 'Hebrew' : 'English';
+        
+        const optionPercentages = sortedOptions.map(opt => {
+          return `${scoreLabels[opt as OptionId]}: ${Math.round((scores[opt] / totalAnswers) * 100)}%`;
+        }).join('\n');
+        
+        const secondary = sortedOptions[1] as OptionId;
+        const secondaryName = t.scoreLabels[secondary];
+        
+        const roleLabel = userRole === 'manager' ? (language === 'he' ? 'מנהל/ת' : 'Manager') : (language === 'he' ? 'עובד/ת תורם/ת' : 'Individual Contributor/Employee');
+
+        const prompt = `Based on a workplace communication and appreciation quiz, your primary style is "${result.title}" (${result.subtitle}). Your role in the organization is: ${roleLabel}. The quiz score distribution is:
+\n${optionPercentages}\n
+Provide a highly personalized, insightful professional analysis addressed directly to the user (use "you" and "your"). Ensure the output is very concise and readable on mobile devices. Address how your specific role (${roleLabel}) interacts with this style.
+Return ONLY a valid JSON object with the following fields:
+1. "insights": A short 1-paragraph professional analysis (max 3 sentences) interpreting your unique score combination for your general work style.
+2. "meaning": A very brief explanation (1 short sentence) of what this primary style specifically means in your daily interactions at work.
+3. "secondaryInsights": A very brief explanation (1 short sentence) of how your secondary highest style (${secondaryName}) complements or influences your primary style.
+4. "tips": An array of 3 short, actionable tips (max 1 sentence each) describing the best ways for peers and managers to collaborate with you based on your profile. Do not include prefixes like "For peers:" or "Tip:", just the actionable tip itself.
+Keep the tone professional, empowering, and empathetic. Write the response in ${languageName}.`;
+
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json"
+          }
+        });
+
+        if (response.text) {
+          try {
+            const parsed = JSON.parse(response.text.trim());
+            setDynamicInsights({
+              insights: parsed.insights,
+              meaning: parsed.meaning,
+              secondaryInsights: parsed.secondaryInsights,
+              tips: parsed.tips
+            });
+          } catch(e) {
+            console.error("Failed to parse JSON", e);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch dynamic insights", err);
+      } finally {
+        setIsLoadingInsights(false);
+      }
+    }
+
+    fetchDynamicInsights();
+  }, [resultId, scores, language, result.title, result.subtitle]);
+
+  const handleFeedbackSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!feedbackText.trim()) return;
+    
+    try {
+      await fetch('/api/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ feedback: feedbackText }),
+      });
+    } catch(err) {
+      console.error("Failed to send feedback", err);
+    }
+
+    setFeedbackSent(true);
+    setTimeout(() => {
+      setShowFeedbackModal(false);
+      setFeedbackSent(false);
+      setFeedbackText("");
+    }, 2500);
+  };
+
   return (
-    <div className="flex flex-col w-full h-full bg-slate-50 overflow-hidden font-sans text-slate-900">
-      <header className="h-16 md:h-20 bg-white border-b border-slate-200 px-4 md:px-8 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-3 overflow-hidden z-10 shrink-0">
-          <div className="w-8 h-8 md:w-10 md:h-10 bg-sky-600 rounded-xl flex items-center justify-center shrink-0">
-            <HeartHandshake className="w-5 h-5 md:w-6 md:h-6 text-white" />
+    <div className="flex flex-col w-full h-full bg-[var(--bg)] overflow-hidden font-ui text-[var(--fg)]">
+      <header className="h-16 md:h-20 bg-[var(--bg-card)] border-b border-[var(--border)] px-4 md:px-6 flex items-center justify-between flex-shrink-0 relative">
+        <div className="flex items-center gap-2 sm:gap-3 z-10 min-w-0 pr-2">
+          <div className="w-8 h-8 md:w-10 md:h-10 rounded-[var(--r-md)] flex items-center justify-center shrink-0" style={{ background: 'var(--brand-gradient)' }}>
+            {(() => {
+              const HeaderIcon = OptionIcons[resultId] || HeartHandshake;
+              return <HeaderIcon className="w-5 h-5 md:w-6 md:h-6 text-[var(--paper)]" />;
+            })()}
           </div>
-          <div className="min-w-0">
-            <h1 className="text-base md:text-xl font-bold tracking-tight text-[#002060] truncate whitespace-nowrap">
-               {t.title} <span className="text-sky-600">{t.subtitle}</span>
+          <div className="flex flex-col justify-center min-w-0">
+            <h1 className="h4 line-clamp-2">
+               <span className="hidden sm:inline">{t.welcome.title} <span className="gradient-text">{t.welcome.subtitle}</span></span>
             </h1>
           </div>
         </div>
 
-        <div className="hidden xl:flex flex-1 justify-center px-4 overflow-hidden min-w-0">
+        <div className="flex items-center gap-2 md:gap-3 z-10 shrink-0 bg-white">
+          <LanguageSwitcher className="px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs md:text-sm" compact />
+          <button
+            onClick={onRestart}
+            className="px-3 py-1.5 md:px-4 md:py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs md:text-sm font-bold rounded-xl flex items-center gap-2 transition-colors z-10 shrink-0 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-1"
+            title={t.common.retake}
+          >
+            <RotateCcw size={16} />
+            <span className="hidden md:inline">{t.common.retake}</span>
+          </button>
+        </div>
+      </header>
+
+      <main className="flex-grow p-4 md:p-6 overflow-y-auto w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 lg:items-stretch">
+          
+          {/* Main Hero Card */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="order-1 lg:col-span-8 bg-[var(--bg-card)] rounded-[var(--r-xl)] border border-[var(--border)] shadow-[var(--shadow-sm)] p-5 md:p-8 flex flex-col justify-start h-full"
+          >
+            <div className="flex justify-between items-start mb-6 shrink-0">
+              <div>
+                <span className="px-3 py-1 bg-[var(--accent-soft-bg)] text-[var(--accent-soft-fg)] rounded-full text-xs font-bold uppercase tracking-widest">
+                  {t.result.primaryLanguage}
+                </span>
+                <h2 className="h2 mt-3 md:mt-4">
+                  {result.title}
+                  <br/>
+                  <span className="gradient-text">{result.subtitle}</span>
+                </h2>
+              </div>
+              <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 bg-[var(--accent-soft-bg)] rounded-[var(--r-lg)] flex items-center justify-center text-[var(--accent)] shrink-0 shadow-[var(--shadow-inset-sm)]">
+                 {(() => {
+                   const Icon = OptionIcons[resultId] || HeartHandshake;
+                   return <Icon className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-12 lg:h-12" />;
+                 })()}
+              </div>
+            </div>
+            
+            <div className="bg-[var(--bg-subtle)] rounded-[var(--r-xl)] p-4 md:p-6 border border-[var(--border-faint)] flex-grow mt-4 md:mt-auto flex flex-col justify-start shadow-[var(--shadow-inset-sm)] relative">
+              <h3 className="font-bold text-[var(--fg-strong)] mb-2 shrink-0">{t.result.analysisInsight}</h3>
+              <div className="overflow-y-auto pr-2 rtl:pl-2 rtl:pr-0">
+                {isLoadingInsights ? (
+                  <div className="flex items-center text-[var(--fg-muted)] my-2">
+                    <Loader2 className="w-5 h-5 animate-spin mr-3 rtl:mr-0 rtl:ml-3 shrink-0 text-[var(--accent)]" />
+                    <span className="text-sm font-medium">{language === 'he' ? 'מייצר ניתוח מבוסס AI מותאם אישית...' : 'Generating personalized AI analysis...'}</span>
+                  </div>
+                ) : (
+                  <p className="body-sm md:body leading-relaxed">
+                    {dynamicInsights ? dynamicInsights.insights : result.insights}
+                  </p>
+                )}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Meaning & User Manual Tab Card */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="order-2 lg:order-3 lg:col-span-8 bg-[var(--ink-900)] rounded-[var(--r-xl)] p-5 md:p-8 text-[var(--paper)] flex flex-col shadow-lg h-full overflow-hidden"
+          >
+             <div className="flex flex-wrap md:flex-nowrap gap-2 mb-6 p-1 bg-white/10 rounded-xl w-full md:w-fit shrink-0" role="tablist">
+               <button 
+                 onClick={() => setActiveTab('analysis')}
+                 className={`flex-1 md:flex-none justify-center px-3 md:px-4 py-2 rounded-lg font-bold text-xs md:text-sm flex items-center gap-1.5 md:gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-1 focus:ring-offset-[var(--ink-900)] ${activeTab === 'analysis' ? 'text-[var(--ink-900)] shadow-[var(--shadow-sm)]' : 'text-slate-300 hover:text-white hover:bg-white/5'} ${activeTab === 'analysis' ? 'bg-[var(--brand-cyan)]' : ''}`}
+                 role="tab"
+                 aria-selected={activeTab === 'analysis'}
+                 aria-controls="panel-analysis"
+                 id="tab-analysis"
+               >
+                 <Info size={16} className="shrink-0" /> <span className="truncate">{t.result.tabs.analysis}</span>
+               </button>
+               <button 
+                 onClick={() => setActiveTab('playbook')}
+                 className={`flex-1 md:flex-none justify-center px-3 md:px-4 py-2 rounded-lg font-bold text-xs md:text-sm flex items-center gap-1.5 md:gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-1 focus:ring-offset-[var(--ink-900)] ${activeTab === 'playbook' ? 'text-[var(--ink-900)] shadow-[var(--shadow-sm)]' : 'text-slate-300 hover:text-white hover:bg-white/5'} ${activeTab === 'playbook' ? 'bg-[var(--brand-cyan)]' : ''}`}
+                 role="tab"
+                 aria-selected={activeTab === 'playbook'}
+                 aria-controls="panel-playbook"
+                 id="tab-playbook"
+               >
+                 <FileText size={16} className="shrink-0" /> <span className="truncate">{t.result.tabs.playbook}</span>
+               </button>
+               <button 
+                 onClick={() => setActiveTab('manual')}
+                 className={`flex-1 md:flex-none justify-center px-3 md:px-4 py-2 rounded-lg font-bold text-xs md:text-sm flex items-center gap-1.5 md:gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-1 focus:ring-offset-[var(--ink-900)] ${activeTab === 'manual' ? 'text-[var(--ink-900)] shadow-[var(--shadow-sm)]' : 'text-slate-300 hover:text-white hover:bg-white/5'} ${activeTab === 'manual' ? 'bg-[var(--brand-cyan)]' : ''}`}
+                 role="tab"
+                 aria-selected={activeTab === 'manual'}
+                 aria-controls="panel-manual"
+                 id="tab-manual"
+               >
+                 <Copy size={16} className="shrink-0" /> <span className="truncate">{t.result.tabs.userManual}</span>
+               </button>
+             </div>
+
+             {activeTab === 'analysis' && (
+               <motion.div 
+                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} 
+                 className="flex flex-col flex-grow overflow-y-auto pr-2 rtl:pl-2 rtl:pr-0"
+                 role="tabpanel"
+                 id="panel-analysis"
+                 aria-labelledby="tab-analysis"
+               >
+                 <h3 className="font-bold text-xl mb-3 flex items-center gap-3 text-sky-300 shrink-0">
+                   {(() => {
+                     const Icon = OptionIcons[resultId] || HeartHandshake;
+                     return <Icon size={20} className="text-sky-400" />;
+                   })()}
+                   {t.result.whatThatMeans}
+                 </h3>
+                 {isLoadingInsights ? (
+                   <div className="flex items-center text-slate-400 my-4 justify-center">
+                     <Loader2 className="w-5 h-5 animate-spin mr-3 rtl:mr-0 rtl:ml-3 shrink-0 text-sky-400" />
+                     <span className="text-sm font-medium">{language === 'he' ? 'טוען משמעות מותאמת אישית...' : 'Loading personalized meaning...'}</span>
+                   </div>
+                 ) : (
+                   <>
+                     <div className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-5 mb-4 shrink-0">
+                       <p className="text-slate-300 leading-relaxed text-sm md:text-base">
+                         {dynamicInsights?.meaning || result.meaning}
+                       </p>
+                     </div>
+                     
+                     {secondaryResult && scores[secondaryId] > 0 && (
+                       <div className="shrink-0 mb-4">
+                         <h3 className="font-bold text-lg mb-2 flex items-center gap-3 text-emerald-400">
+                           {(() => {
+                             const SecondaryIcon = OptionIcons[secondaryId] || HeartHandshake;
+                             return <SecondaryIcon size={20} className="text-emerald-400" />;
+                           })()}
+                           {t.result.secondaryTrait} {secondaryResult.title}
+                         </h3>
+                         <div className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-5">
+                           <p className="text-slate-300 leading-relaxed text-sm">
+                             {dynamicInsights?.secondaryInsights || secondaryResult.insights}
+                           </p>
+                         </div>
+                       </div>
+                     )}
+                   </>
+                 )}
+               </motion.div>
+             )}
+
+             {activeTab === 'playbook' && (
+               <motion.div 
+                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} 
+                 className="flex flex-col flex-grow overflow-y-auto pr-2 gap-4 rtl:pl-2 rtl:pr-0"
+                 role="tabpanel"
+                 id="panel-playbook"
+                 aria-labelledby="tab-playbook"
+               >
+                 <div className="bg-indigo-900/40 border border-indigo-400/30 rounded-2xl p-5 shrink-0">
+                   <h4 className="font-bold text-indigo-300 mb-2">
+                                          {t.result.scenarios.crunchTime}
+                   </h4>
+                   <p className="text-slate-200 text-sm leading-relaxed">{result.playbook.crunchTime}</p>
+                 </div>
+                 
+                 <div className="bg-rose-900/40 border border-rose-400/30 rounded-2xl p-5 shrink-0">
+                   <h4 className="font-bold text-rose-300 mb-2">
+                                          {t.result.scenarios.burnoutSigns}
+                   </h4>
+                   <p className="text-slate-200 text-sm leading-relaxed">{result.playbook.burnoutSigns}</p>
+                 </div>
+
+                 <div className="bg-amber-900/40 border border-amber-400/30 rounded-2xl p-5 shrink-0">
+                   <h4 className="font-bold text-amber-300 mb-2">
+                                          {t.result.scenarios.negativeFeedback}
+                   </h4>
+                   <p className="text-slate-200 text-sm leading-relaxed">{result.playbook.negativeFeedback}</p>
+                 </div>
+               </motion.div>
+             )}
+
+             {activeTab === 'manual' && (
+               <motion.div 
+                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                 className="flex flex-col h-full bg-white text-slate-800 rounded-2xl shadow-inner border border-slate-200 overflow-hidden"
+                 role="tabpanel"
+                 id="panel-manual"
+                 aria-labelledby="tab-manual"
+               >
+                 <div className="bg-slate-100 p-3 px-5 border-b border-slate-200 flex justify-between items-center shrink-0">
+                   <span className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                     <span className="w-2 h-2 rounded-full bg-sky-500"></span>
+                     {t.result.shareWithTeam}
+                   </span>
+                   <button 
+                     onClick={handleCopy}
+                     className="px-3 py-1.5 bg-white border border-slate-300 hover:border-sky-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg text-sm font-bold text-slate-700 transition-colors flex items-center gap-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-1"
+                     aria-label={t.common.copyText}
+                     title={t.common.copyText}
+                   >
+                     {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                     {copied ? t.common.copied : t.common.copyText}
+                   </button>
+                 </div>
+                 <div className="p-5 md:p-6 overflow-y-auto text-sm md:text-base leading-relaxed text-slate-700 whitespace-pre-wrap select-all font-medium  rtl:text-right">
+                   {manualText}
+                 </div>
+               </motion.div>
+             )}
+          </motion.div>
+
+          {/* Actionable Tips */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="order-3 lg:order-2 lg:col-span-4 bg-[var(--ok-soft)] rounded-[var(--r-xl)] border border-[var(--ok-soft)] p-5 md:p-6 flex flex-col h-full shadow-[var(--shadow-sm)]"
+          >
+            <div className="flex items-center gap-3 mb-6 shrink-0">
+              <div className="w-10 h-10 bg-[var(--ok)] rounded-full flex items-center justify-center text-[var(--paper)] font-bold shrink-0 shadow-[var(--shadow-xs)]">
+                !
+              </div>
+              <h3 className="h3 text-[var(--ok-ink)]">{t.result.actionableTips}</h3>
+            </div>
+            
+            <ul className="space-y-4 flex-grow overflow-y-auto pr-2 rtl:pl-2 rtl:pr-0">
+              {isLoadingInsights ? (
+                <div className="flex items-center text-[var(--ok-ink)] my-4 justify-center opacity-70">
+                  <Loader2 className="w-5 h-5 animate-spin mr-3 rtl:mr-0 rtl:ml-3 shrink-0" />
+                  <span className="text-sm font-medium">{language === 'he' ? 'מייצר המלצות מותאמות אישית...' : 'Generating personalized recommendations...'}</span>
+                </div>
+              ) : (
+                (dynamicInsights?.tips || result.tips).map((tip, idx) => (
+                  <li key={idx} className="flex gap-3 items-start shrink-0">
+                    <div className="w-4 h-4 mt-1 rounded-[var(--r-xs)] bg-[var(--ok)] opacity-70 flex-shrink-0" />
+                    <p className="body-sm md:body text-[var(--ok-ink)] font-medium">
+                      {tip}
+                    </p>
+                  </li>
+                ))
+              )}
+            </ul>
+          </motion.div>
+          
+           {/* Summary Graphic / Extra Box */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4, duration: 0.5, ease: "easeOut" }}
+            className="order-4 lg:order-4 lg:col-span-4 rounded-[var(--r-xl)] shadow-[var(--shadow-brand-md)] p-5 md:p-8 text-[var(--paper)] flex flex-col justify-between h-full relative overflow-hidden"
+            style={{ background: 'var(--brand-gradient)' }}
+          >
+             {/* Subtle background decoration */}
+             <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+             <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-48 h-48 bg-black/10 rounded-full blur-2xl pointer-events-none" />
+
+             <div className="flex flex-col h-full relative z-10">
+               <h3 className="h3 text-[var(--paper)] mb-2 shrink-0">{t.result.languageBreakdown}</h3>
+               
+               <motion.div 
+                 initial={{ opacity: 0, y: 20 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
+                 className="h-56 sm:h-48 md:h-64 mb-4 -mx-4 sm:-mx-2 shrink-0 drop-shadow-md" 
+                 dir="ltr"
+               >
+                 <ResponsiveContainer width="100%" height="100%">
+                   <RadarChart cx="50%" cy="50%" outerRadius="70%" data={sortedOptions.map(optionId => ({
+                     optionId: optionId,
+                     subject: scoreLabels[optionId as OptionId],
+                     value: Math.round((scores[optionId] / totalAnswers) * 100)
+                   }))}>
+                     <defs>
+                       <linearGradient id="radarGradient" x1="0" y1="0" x2="0" y2="1">
+                         <stop offset="0%" stopColor="#ffffff" stopOpacity={0.8}/>
+                         <stop offset="100%" stopColor="#ffffff" stopOpacity={0.1}/>
+                       </linearGradient>
+                     </defs>
+                     <PolarGrid stroke="rgba(255,255,255,0.2)" strokeDasharray="3 3" />
+                     <PolarAngleAxis 
+                        dataKey="optionId" 
+                        tick={(props: any) => {
+                          const { payload, x, y, textAnchor } = props;
+                          const id = payload.value as OptionId;
+                          const Icon = OptionIcons[id];
+                          const label = scoreLabels[id];
+                          
+                          const iconX = textAnchor === 'start' ? 0 : (textAnchor === 'end' ? -16 : -8);
+                          const textX = textAnchor === 'start' ? 22 : (textAnchor === 'end' ? -22 : 0);
+                          const textY = textAnchor === 'middle' ? 20 : 4;
+                          const iconY = textAnchor === 'middle' ? -8 : -8;
+
+                          return (
+                            <g transform={`translate(${x},${y})`}>
+                              <Icon 
+                                x={textAnchor === 'middle' ? -8 : iconX} 
+                                y={iconY} 
+                                width={16} 
+                                height={16} 
+                                stroke="rgba(255,255,255,0.9)" 
+                              />
+                              <text 
+                                x={textAnchor === 'middle' ? 0 : textX} 
+                                y={textY} 
+                                textAnchor={textAnchor} 
+                                fill="rgba(255,255,255,0.95)" 
+                                fontSize={11}
+                                fontFamily="var(--font-ui)"
+                                fontWeight={600}
+                              >
+                                {label}
+                              </text>
+                            </g>
+                          );
+                        }} 
+                      />
+                     <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                     <Radar
+                       name={t.common.score}
+                       dataKey="value"
+                       stroke="#fff"
+                       strokeWidth={2}
+                       fill="url(#radarGradient)"
+                       fillOpacity={1}
+                       isAnimationActive={true}
+                       animationBegin={600}
+                       animationDuration={1200}
+                       animationEasing="ease-out"
+                     />
+                     <Tooltip 
+                       contentStyle={{ backgroundColor: 'var(--ink-900)', border: '1px solid var(--ink-700)', borderRadius: 'var(--r-md)', color: '#fff', boxShadow: 'var(--shadow-md)' }}
+                       itemStyle={{ color: '#fff', fontWeight: 'bold' }}
+                       formatter={(value: number) => [`${value}%`, t.common.score]}
+                     />
+                   </RadarChart>
+                 </ResponsiveContainer>
+               </motion.div>
+
+               <div className="space-y-4 overflow-y-auto pr-2 flex-grow rtl:pl-2 rtl:pr-0 mt-2">
+                 {sortedOptions.map((optionId, index) => {
+                   const percentage = Math.round((scores[optionId] / totalAnswers) * 100);
+                   const Icon = OptionIcons[optionId];
+                   return (
+                     <div key={optionId} className="shrink-0">
+                        <div className="flex justify-between items-center text-sm mb-1.5 rtl:flex-row-reverse">
+                          <span className="opacity-90 font-medium flex items-center gap-2 rtl:flex-row-reverse">
+                            <Icon size={16} className={optionId === resultId ? 'text-white' : 'text-white/70'} />
+                            {scoreLabels[optionId as OptionId]}
+                          </span>
+                          <span className="font-bold font-mono tracking-tight">{percentage}%</span>
+                        </div>
+                        <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden shadow-inner" dir="ltr">
+                          <motion.div
+                             initial={{ width: 0 }}
+                             animate={{ width: `${percentage}%` }}
+                             transition={{ duration: 1, ease: "easeOut", delay: 0.8 + index * 0.15 }}
+                             className={`h-full origin-left rtl:origin-right ${optionId === resultId ? 'bg-white' : 'bg-white/60'}`}
+                          />
+                        </div>
+                     </div>
+                   );
+                 })}
+               </div>
+             </div>
+             
+             <div className="mt-8 pt-4 border-t border-white/20 eyebrow text-center shrink-0">
+                <span className="text-white/80">{t.result.aiPoweredInsight}</span>
+             </div>
+          </motion.div>
+
+          {/* Feedback Link */}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className="order-5 lg:col-span-12 flex justify-center mt-4 mb-2"
+          >
+            <button 
+              onClick={() => setShowFeedbackModal(true)}
+              className="text-slate-600 hover:text-sky-700 text-sm font-bold transition-colors underline underline-offset-4 decoration-slate-300 hover:decoration-sky-400 flex items-center gap-2 bg-slate-100 hover:bg-sky-50 px-4 py-2 rounded-full border border-slate-300 shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2"
+              title={t.result.feedback.text}
+            >
+              <MessageSquareHeart size={16} />
+              {t.result.feedback.text}
+            </button>
+          </motion.div>
+
+        </div>
+
+        <footer className="mt-8 pt-6 border-t border-[var(--border-faint)] w-full flex flex-col items-center gap-6 text-xs text-[var(--fg-muted)] pb-4">
           <a 
-            href="https://www.just-ai.it" 
+            href="https://justaiit.web.app/#app=workplace-love-language" 
             target="_blank" 
             rel="noopener noreferrer"
             dir="ltr"
-            className="transition-transform hover:scale-105 shrink-0"
+            className="transition-transform hover:scale-105 shrink-0 flex flex-col items-center gap-1 opacity-80"
           >
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Powered by</span>
             <img 
-              src="/logo.png" 
+              src="/logo.svg" 
               alt="Just AI IT Logo" 
-              className="h-6 md:h-8 object-contain"
+              className="h-8 object-contain"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
                 if (e.currentTarget.nextElementSibling) {
@@ -78,16 +571,16 @@ export function ResultScreen({ resultId, scores, onRestart }: ResultScreenProps)
                 }
               }}
             />
-            <div className="hidden items-center gap-[4px] font-black text-base md:text-lg tracking-tighter text-slate-800" style={{ display: 'none' }}>
+            <div className="hidden items-center gap-[6px] font-black text-xl tracking-tighter text-slate-800" style={{ display: 'none' }}>
               <span>JUST</span>
-              <span className="relative flex items-center justify-center w-[1.8rem] h-[1.8rem] rounded-xl bg-gradient-to-tr from-cyan-400 via-indigo-500 to-purple-500 p-[2.5px]">
-                <span className="flex items-center justify-center w-full h-full bg-white rounded-[9px] text-black font-sans tracking-normal pb-[1px]">
+              <span className="relative flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-tr from-cyan-400 via-indigo-500 to-purple-500 p-[3px]">
+                <span className="flex items-center justify-center w-full h-full bg-slate-50 rounded-[6px] text-black font-sans tracking-normal pb-[1px]">
                   AI
                 </span>
-                <span className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center p-[2px]">
-                  <svg width="100%" height="100%" viewBox="0 0 24 24" fill="url(#star-grad2)" xmlns="http://www.w3.org/2000/svg">
+                <span className="absolute -top-2 -right-2 w-5 h-5 bg-slate-50 rounded-full flex items-center justify-center p-[2px]">
+                  <svg width="100%" height="100%" viewBox="0 0 24 24" fill="url(#star-grad-footer)" xmlns="http://www.w3.org/2000/svg">
                     <defs>
-                      <linearGradient id="star-grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <linearGradient id="star-grad-footer" x1="0%" y1="0%" x2="100%" y2="100%">
                         <stop offset="0%" stopColor="#a855f7" />
                         <stop offset="100%" stopColor="#22d3ee" />
                       </linearGradient>
@@ -99,295 +592,73 @@ export function ResultScreen({ resultId, scores, onRestart }: ResultScreenProps)
               <span>IT</span>
             </div>
           </a>
-        </div>
-        
-        <div className="flex items-center gap-2 md:gap-3 z-10 shrink-0">
-          <LanguageSwitcher className="px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs md:text-sm" compact />
-          <button
-            onClick={onRestart}
-            className="px-3 py-1.5 md:px-4 md:py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs md:text-sm font-bold rounded-xl flex items-center gap-2 transition-colors z-10"
-          >
-            <RotateCcw size={16} />
-            <span className="hidden md:inline">{t.retake}</span>
-          </button>
-        </div>
-      </header>
-
-      <main className="flex-grow p-4 md:p-6 overflow-y-auto w-full">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-          
-          {/* Main Hero Card */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="order-1 md:col-span-8 md:row-span-3 bg-white rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8 flex flex-col justify-between h-full"
-          >
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <span className="px-3 py-1 bg-sky-100 text-sky-700 rounded-full text-xs font-bold uppercase tracking-widest">
-                  {t.primaryLanguage}
-                </span>
-                <h2 className="text-3xl md:text-5xl font-black text-[#002060] mt-4 leading-tight">
-                  {result.title}
-                  <br/>
-                  <span className="text-sky-600 text-2xl md:text-4xl">{result.subtitle}</span>
-                </h2>
-              </div>
-              <div className="w-16 h-16 md:w-24 md:h-24 bg-sky-50 rounded-2xl flex items-center justify-center text-sky-600 shrink-0 shadow-inner">
-                 {(() => {
-                   const Icon = OptionIcons[resultId] || HeartHandshake;
-                   return <Icon className="w-8 h-8 md:w-12 md:h-12" />;
-                 })()}
-              </div>
-            </div>
-            
-            <div className="bg-slate-50 rounded-2xl p-5 md:p-6 border border-slate-100 flex-grow flex flex-col justify-start min-h-24">
-              <h3 className="font-bold text-slate-700 mb-2 shrink-0">{t.analysisInsight}</h3>
-              <p className="text-slate-600 leading-relaxed text-sm md:text-base">
-                {result.insights}
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Actionable Tips */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="order-3 md:order-2 md:col-span-4 md:row-span-3 bg-emerald-50 rounded-3xl border border-emerald-100 p-6 flex flex-col h-full"
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white font-bold shrink-0">
-                !
-              </div>
-              <h3 className="font-bold text-emerald-900 text-lg">{t.actionableTips}</h3>
-            </div>
-            
-            <ul className="space-y-4 flex-grow overflow-y-auto pr-2">
-              {result.tips.map((tip, idx) => (
-                <li key={idx} className="flex gap-3 items-start">
-                  <div className="w-4 h-4 mt-1 rounded bg-emerald-300 flex-shrink-0" />
-                  <p className="text-sm md:text-base text-emerald-800 leading-relaxed">
-                    {tip}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-
-          {/* Meaning & User Manual Tab Card */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="order-2 md:order-3 md:col-span-8 md:row-span-3 bg-[#002060] rounded-3xl p-6 md:p-8 text-white flex flex-col shadow-lg h-full overflow-hidden"
-          >
-             <div className="flex flex-wrap md:flex-nowrap gap-2 mb-6 p-1 bg-white/10 rounded-xl w-full md:w-fit">
-               <button 
-                 onClick={() => setActiveTab('analysis')}
-                 className={`flex-1 md:flex-none justify-center px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all ${activeTab === 'analysis' ? 'bg-sky-500 text-white shadow-sm' : 'text-slate-300 hover:text-white hover:bg-white/5'}`}
-               >
-                 <Info size={16} /> {t.analysis}
-               </button>
-               <button 
-                 onClick={() => setActiveTab('playbook')}
-                 className={`flex-1 md:flex-none justify-center px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all ${activeTab === 'playbook' ? 'bg-sky-500 text-white shadow-sm' : 'text-slate-300 hover:text-white hover:bg-white/5'}`}
-               >
-                 <FileText size={16} /> {t.playbook}
-               </button>
-               <button 
-                 onClick={() => setActiveTab('manual')}
-                 className={`flex-1 md:flex-none justify-center px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all ${activeTab === 'manual' ? 'bg-sky-500 text-white shadow-sm' : 'text-slate-300 hover:text-white hover:bg-white/5'}`}
-               >
-                 <Copy size={16} /> {t.userManual}
-               </button>
-             </div>
-
-             {activeTab === 'analysis' && (
-               <motion.div 
-                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} 
-                 className="flex flex-col flex-grow overflow-y-auto pr-2 rtl:pl-2 rtl:pr-0"
-               >
-                 <h3 className="font-bold text-xl mb-3 flex items-center gap-3 text-sky-300 shrink-0">
-                   {(() => {
-                     const Icon = OptionIcons[resultId] || HeartHandshake;
-                     return <Icon size={20} className="text-sky-400" />;
-                   })()}
-                   {t.whatThatMeans}
-                 </h3>
-                 <div className="bg-white/5 border border-white/10 rounded-2xl p-5 mb-4 shrink-0">
-                   <p className="text-slate-300 leading-relaxed text-sm md:text-base">
-                     {result.meaning}
-                   </p>
-                 </div>
-                 
-                 {secondaryResult && scores[secondaryId] > 0 && (
-                   <div className="shrink-0 mb-4">
-                     <h3 className="font-bold text-lg mb-2 flex items-center gap-3 text-emerald-400">
-                       {(() => {
-                         const SecondaryIcon = OptionIcons[secondaryId] || HeartHandshake;
-                         return <SecondaryIcon size={20} className="text-emerald-400" />;
-                       })()}
-                       {t.secondaryTrait} {secondaryResult.title}
-                     </h3>
-                     <div className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-5">
-                       <p className="text-slate-300 leading-relaxed text-sm">
-                         {secondaryResult.insights}
-                       </p>
-                     </div>
-                   </div>
-                 )}
-               </motion.div>
-             )}
-
-             {activeTab === 'playbook' && (
-               <motion.div 
-                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} 
-                 className="flex flex-col flex-grow overflow-y-auto pr-2 gap-4 rtl:pl-2 rtl:pr-0"
-               >
-                 <div className="bg-indigo-900/40 border border-indigo-400/30 rounded-2xl p-5">
-                   <h4 className="font-bold text-indigo-300 mb-2 flex flex-col gap-1">
-                     <span className="text-xs uppercase tracking-widest text-indigo-400">{t.scenario1}</span>
-                     {t.crunchTime}
-                   </h4>
-                   <p className="text-slate-200 text-sm leading-relaxed">{result.playbook.crunchTime}</p>
-                 </div>
-                 
-                 <div className="bg-rose-900/40 border border-rose-400/30 rounded-2xl p-5">
-                   <h4 className="font-bold text-rose-300 mb-2 flex flex-col gap-1">
-                     <span className="text-xs uppercase tracking-widest text-rose-400">{t.scenario2}</span>
-                     {t.burnoutSigns}
-                   </h4>
-                   <p className="text-slate-200 text-sm leading-relaxed">{result.playbook.burnoutSigns}</p>
-                 </div>
-
-                 <div className="bg-amber-900/40 border border-amber-400/30 rounded-2xl p-5">
-                   <h4 className="font-bold text-amber-300 mb-2 flex flex-col gap-1">
-                     <span className="text-xs uppercase tracking-widest text-amber-400">{t.scenario3}</span>
-                     {t.negativeFeedback}
-                   </h4>
-                   <p className="text-slate-200 text-sm leading-relaxed">{result.playbook.negativeFeedback}</p>
-                 </div>
-               </motion.div>
-             )}
-
-             {activeTab === 'manual' && (
-               <motion.div 
-                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                 className="flex flex-col h-full bg-white text-slate-800 rounded-2xl shadow-inner border border-slate-200 overflow-hidden"
-               >
-                 <div className="bg-slate-100 p-3 px-5 border-b border-slate-200 flex justify-between items-center shrink-0">
-                   <span className="text-sm font-bold text-slate-600 flex items-center gap-2">
-                     <span className="w-2 h-2 rounded-full bg-sky-500"></span>
-                     {t.shareWithTeam}
-                   </span>
-                   <button 
-                     onClick={handleCopy}
-                     className="px-3 py-1.5 bg-white border border-slate-300 hover:border-sky-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg text-sm font-bold text-slate-600 transition-colors flex items-center gap-2 shadow-sm"
-                   >
-                     {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                     {copied ? t.copied : t.copyText}
-                   </button>
-                 </div>
-                 <div className="p-5 md:p-6 overflow-y-auto text-sm md:text-base leading-relaxed text-slate-700 whitespace-pre-wrap select-all font-medium  rtl:text-right">
-                   {result.userManualTemplate}
-                 </div>
-               </motion.div>
-             )}
-          </motion.div>
-          
-           {/* Summary Graphic / Extra Box */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="order-4 md:col-span-4 md:row-span-3 bg-sky-600 rounded-3xl shadow-lg p-6 md:p-8 text-white flex flex-col justify-between h-full"
-          >
-             <div className="flex flex-col h-full">
-               <h3 className="text-xl font-bold mb-2">{t.languageBreakdown}</h3>
-               
-               <div className="h-48 md:h-56 mb-4 -mx-4" dir="ltr">
-                 <ResponsiveContainer width="100%" height="100%">
-                   <RadarChart cx="50%" cy="50%" outerRadius="70%" data={sortedOptions.map(optionId => ({
-                     subject: scoreLabels[optionId as OptionId],
-                     value: Math.round((scores[optionId] / totalAnswers) * 100)
-                   }))}>
-                     <PolarGrid stroke="rgba(255,255,255,0.2)" />
-                     <PolarAngleAxis dataKey="subject" tick={{ fill: 'rgba(255,255,255,0.8)', fontSize: 12 }} />
-                     <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                     <Radar
-                       name={t.score}
-                       dataKey="value"
-                       stroke="#fff"
-                       fill="rgba(255,255,255,0.4)"
-                       fillOpacity={0.6}
-                     />
-                     <Tooltip 
-                       contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px', color: '#fff' }}
-                       itemStyle={{ color: '#fff' }}
-                       formatter={(value: number) => [`${value}%`, t.score]}
-                     />
-                   </RadarChart>
-                 </ResponsiveContainer>
-               </div>
-
-               <div className="space-y-4 overflow-y-auto pr-2 flex-grow rtl:pl-2 rtl:pr-0">
-                 {sortedOptions.map(optionId => {
-                   const percentage = Math.round((scores[optionId] / totalAnswers) * 100);
-                   const Icon = OptionIcons[optionId];
-                   return (
-                     <div key={optionId}>
-                        <div className="flex justify-between items-center text-sm mb-2 rtl:flex-row-reverse">
-                          <span className="opacity-90 font-medium flex items-center gap-2 rtl:flex-row-reverse">
-                            <Icon size={16} className={optionId === resultId ? 'text-white' : 'text-sky-300'} />
-                            {scoreLabels[optionId as OptionId]}
-                          </span>
-                          <span className="font-bold">{percentage}%</span>
-                        </div>
-                        <div className="w-full bg-sky-400/30 h-2 rounded-full overflow-hidden" dir="ltr">
-                          <motion.div
-                             initial={{ width: 0 }}
-                             animate={{ width: `${percentage}%` }}
-                             transition={{ duration: 1, ease: "easeOut", delay: 0.5 }}
-                             className={`h-full origin-left rtl:origin-right ${optionId === resultId ? 'bg-white' : 'bg-sky-200'}`}
-                          />
-                        </div>
-                     </div>
-                   );
-                 })}
-               </div>
-             </div>
-             
-             <div className="mt-8 pt-4 border-t border-sky-400/30 text-xs text-sky-200 uppercase tracking-widest font-bold text-center">
-                {t.aiPoweredInsight}
-             </div>
-          </motion.div>
-
-          {/* Feedback Link */}
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="order-5 md:col-span-12 flex justify-center mt-4 mb-2"
-          >
-            <a 
-              href="mailto:dl@just-ai.it?subject=Workplace%20Love%20Language%20Feedback" 
-              className="text-slate-400 hover:text-sky-600 text-sm font-medium transition-colors underline underline-offset-4 decoration-slate-300 hover:decoration-sky-400 flex items-center gap-2 bg-slate-100 hover:bg-sky-50 px-4 py-2 rounded-full border border-slate-200 shadow-sm"
-              onClick={(e) => {
-                // In an iframe context, mailto links might fail or cause a white screen.
-                // We'll try to execute it gracefully.
-                e.preventDefault();
-                window.location.href = "mailto:dl@just-ai.it?subject=Workplace%20Love%20Language%20Feedback";
-              }}
-            >
-              <Mail size={16} />
-              {t.feedbackText}
-            </a>
-          </motion.div>
-
-        </div>
+          <nav className="flex items-center gap-4 mt-3 w-full justify-center">
+            <Link to="/terms" className="hover:text-[var(--fg)] hover:underline">{l.terms}</Link>
+            <Link to="/privacy" className="hover:text-[var(--fg)] hover:underline">{l.privacy}</Link>
+            <Link to="/accessibility" className="hover:text-[var(--fg)] hover:underline">{l.accessibility}</Link>
+          </nav>
+        </footer>
       </main>
+
+      {/* Feedback Modal */}
+      {showFeedbackModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="feedback-dialog-title"
+        >
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 max-w-md w-full border border-slate-100"
+          >
+            {feedbackSent ? (
+               <div className="flex flex-col items-center justify-center py-8 text-center text-emerald-600">
+                 <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                   <Check className="w-8 h-8" />
+                 </div>
+                 <h3 className="text-xl font-bold" id="feedback-dialog-title">{t.result.feedback.thanks}</h3>
+               </div>
+            ) : (
+              <form onSubmit={handleFeedbackSubmit} className="flex flex-col gap-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center shrink-0">
+                    <MessageSquareHeart size={20} />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-800" id="feedback-dialog-title">{t.result.feedback.text}</h3>
+                </div>
+                
+                <textarea 
+                  value={feedbackText}
+                  onChange={(e) => setFeedbackText(e.target.value)}
+                  placeholder={t.result.feedback.placeholder}
+                  className="w-full h-32 p-4 bg-slate-50 border border-slate-300 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 text-slate-800"
+                  required
+                  aria-label={t.result.feedback.placeholder}
+                />
+                
+                <div className="flex gap-3 justify-end mt-2">
+                  <button 
+                    type="button"
+                    onClick={() => setShowFeedbackModal(false)}
+                    className="px-5 py-2.5 rounded-xl font-bold text-slate-700 hover:bg-slate-200 hover:text-slate-900 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+                  >
+                    {t.common.cancel}
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={!feedbackText.trim()}
+                    className="px-6 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-sky-600/30 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2"
+                  >
+                    {t.result.feedback.submit}
+                  </button>
+                </div>
+              </form>
+            )}
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

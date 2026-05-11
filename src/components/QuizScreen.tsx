@@ -9,11 +9,13 @@ import { LanguageSwitcher } from './LanguageSwitcher';
 
 interface QuizScreenProps {
   onComplete: (answers: Record<number, OptionId>) => void;
+  userRole?: 'manager' | 'employee';
 }
 
-export function QuizScreen({ onComplete }: QuizScreenProps) {
+export function QuizScreen({ onComplete, userRole = 'employee' }: QuizScreenProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, OptionId>>({});
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const { language, dir } = useLanguage();
   const t = translations[language];
 
@@ -23,17 +25,46 @@ export function QuizScreen({ onComplete }: QuizScreenProps) {
   const totalQuestions = questions.length;
   const progress = ((currentQuestionIndex + 1) / totalQuestions) * 100;
 
+  const adaptText = (text: string) => {
+    let newText = text;
+    if (language === 'en') {
+      if (userRole === 'manager') {
+        newText = newText.replace(/Your boss/g, 'Company leadership');
+        newText = newText.replace(/your boss/g, 'company leadership');
+        newText = newText.replace(/Your coworker /g, 'Your team member/peer ');
+        newText = newText.replace(/your coworker/g, 'your team member/peer');
+        newText = newText.replace(/A new manager is joining to lead your team/g, 'A new director is joining to lead your department');
+      } else {
+        newText = newText.replace("You’re a manager, your team had a great year", "Your team had a great year");
+      }
+    } else {
+      if (userRole === 'manager') {
+        newText = newText.replace(/מנהל\/ת/g, 'הנהלה');
+        newText = newText.replace(/הבוס/g, 'ההנהלה');
+        newText = newText.replace(/קולגה/g, 'חבר/ת צוות');
+      } else {
+        newText = newText.replace("את/ה מנהל/ת, לצוות שלך", "לצוות שלך");
+      }
+    }
+    return newText;
+  };
+
   const handleSelectOption = (optionId: OptionId) => {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
+
     const newAnswers = { ...answers, [question.id]: optionId };
     setAnswers(newAnswers);
 
     if (currentQuestionIndex < totalQuestions - 1) {
       setTimeout(() => {
         setCurrentQuestionIndex(prev => prev + 1);
+        setIsTransitioning(false);
       }, 300);
     } else {
       setTimeout(() => {
         onComplete(newAnswers);
+        setIsTransitioning(false);
       }, 300);
     }
   };
@@ -45,19 +76,22 @@ export function QuizScreen({ onComplete }: QuizScreenProps) {
   };
 
   return (
-    <div className="flex flex-col w-full h-full bg-slate-50 font-sans text-slate-900">
+    <div className="flex flex-col w-full h-full bg-[var(--bg)] font-ui text-[var(--fg)]">
       {/* Header */}
-      <div className="h-20 bg-white border-b border-slate-200 px-6 flex items-center shrink-0 z-10">
+      <div className="h-16 md:h-20 bg-[var(--bg-card)] border-b border-[var(--border)] px-4 md:px-6 flex items-center shrink-0 z-10">
         <button 
           onClick={handleBack}
           disabled={currentQuestionIndex === 0}
-          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${currentQuestionIndex === 0 ? 'opacity-0 cursor-default' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}
+          className={`w-8 h-8 md:w-10 md:h-10 rounded-[var(--r-md)] flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-1 ${currentQuestionIndex === 0 ? 'opacity-0 cursor-default' : 'bg-[var(--bg-subtle)] hover:bg-[var(--border)] text-[var(--fg-muted)]'}`}
+          aria-label={dir === 'rtl' ? 'הקודם' : 'Go back'}
+          title={dir === 'rtl' ? 'חזור לשאלה הקודמת' : 'Go back'}
+          aria-hidden={currentQuestionIndex === 0}
         >
-          {dir === 'rtl' ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+          {dir === 'rtl' ? <ChevronRight className="w-4 h-4 md:w-5 md:h-5" /> : <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />}
         </button>
         <div className="flex-1 flex justify-center">
-          <span className="text-xs font-bold tracking-widest text-slate-400 uppercase">
-            {t.questionXofY.replace('{current}', String(currentQuestionIndex + 1)).replace('{total}', String(totalQuestions))}
+          <span className="eyebrow" aria-live="polite" aria-atomic="true">
+            {t.quiz.questionXofY.replace('{current}', String(currentQuestionIndex + 1)).replace('{total}', String(totalQuestions))}
           </span>
         </div>
         <div className="shrink-0 flex justify-end">
@@ -66,9 +100,16 @@ export function QuizScreen({ onComplete }: QuizScreenProps) {
       </div>
 
       {/* Progress Bar Container */}
-      <div className="w-full bg-sky-100 h-1 overflow-hidden shrink-0" dir="ltr">
+      <div 
+        className="w-full bg-[var(--border)] h-1 overflow-hidden shrink-0" 
+        dir="ltr"
+        role="progressbar"
+        aria-valuenow={Math.round(progress)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
         <motion.div 
-          className="bg-sky-600 h-full origin-left rtl:origin-right"
+          className="bg-[var(--accent)] h-full origin-left rtl:origin-right"
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
           transition={{ duration: 0.3, ease: "easeOut" }}
@@ -76,7 +117,7 @@ export function QuizScreen({ onComplete }: QuizScreenProps) {
       </div>
 
       {/* Question Content */}
-      <div className="flex-1 overflow-y-auto p-6 md:p-8 flex justify-center">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 flex justify-center">
         <div className="w-full max-w-2xl">
           <AnimatePresence mode="wait">
             <motion.div
@@ -87,30 +128,31 @@ export function QuizScreen({ onComplete }: QuizScreenProps) {
               transition={{ duration: 0.2 }}
               className="flex flex-col h-full"
             >
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8 mb-6">
-                <h2 className="text-2xl md:text-3xl font-black text-[#002060] leading-tight text-center md:text-start">
-                  {question.text}
+              <div className="bg-[var(--bg-card)] rounded-[var(--r-xl)] border border-[var(--border)] shadow-[var(--shadow-sm)] p-5 md:p-8 mb-4 md:mb-6">
+                <h2 className="h2 text-center md:text-start">
+                  {adaptText(question.text)}
                 </h2>
               </div>
-
-              <div className="flex flex-col gap-4 pb-8">
+              
+              <div className="flex flex-col gap-3 md:gap-4 pb-8">
                 {question.options.map((option) => {
                   const isSelected = answers[question.id] === option.id;
                   return (
                     <button
                       key={option.id}
                       onClick={() => handleSelectOption(option.id)}
-                      className={`text-start rtl:text-right p-5 md:p-6 rounded-3xl border transition-all duration-200 ease-in-out flex items-start gap-4 ${
+                      className={`text-start rtl:text-right p-4 md:p-6 rounded-[var(--r-lg)] border transition-all duration-[var(--dur-sm)] ease-in-out flex items-start gap-3 md:gap-4 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 ${
                         isSelected 
-                          ? 'border-sky-600 bg-sky-50 text-sky-900 shadow-sm scale-[0.99]' 
-                          : 'border-slate-200 bg-white text-slate-600 hover:border-sky-200 hover:bg-sky-50/50 hover:shadow-sm'
+                          ? 'border-[var(--border-brand)] bg-[var(--accent-soft-bg)] text-[var(--accent-soft-fg)] shadow-[var(--shadow-xs)] scale-[0.99] ring-1 ring-[var(--border-brand)]' 
+                          : 'border-[var(--border)] bg-[var(--bg-card)] text-[var(--fg)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-subtle)] hover:shadow-[var(--shadow-xs)]'
                       }`}
+                      aria-pressed={isSelected}
                     >
-                      <div className={`w-6 h-6 shrink-0 mt-0.5 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-sky-600' : 'border-slate-300'}`}>
-                        {isSelected && <div className="w-3 h-3 bg-sky-600 rounded-full" />}
+                      <div className={`w-5 h-5 md:w-6 md:h-6 shrink-0 mt-0.5 md:mt-1 rounded-full border-[1.5px] flex items-center justify-center ${isSelected ? 'border-[var(--accent)]' : 'border-[var(--border-strong)]'}`}>
+                        {isSelected && <div className="w-2.5 h-2.5 md:w-3 md:h-3 bg-[var(--accent)] rounded-full" />}
                       </div>
-                      <span className={`text-base md:text-lg leading-relaxed ${isSelected ? 'font-medium' : ''}`}>
-                        {option.text}
+                      <span className={`text-sm sm:text-base md:text-lg leading-relaxed ${isSelected ? 'font-medium' : ''}`}>
+                        {adaptText(option.text)}
                       </span>
                     </button>
                   );
