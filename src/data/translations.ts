@@ -54,6 +54,7 @@ export interface TranslationDict {
       submit: string;
       thanks: string;
     };
+    copyCta: string;
   };
   navigation: {
     languageSwitch: string;
@@ -125,7 +126,8 @@ export const translations: Record<LanguageCode, TranslationDict> = {
         placeholder: "נשמח לשמוע מה דעתך...",
         submit: "שליחה",
         thanks: "תודה על הפידבק!",
-      }
+      },
+      copyCta: "גלו את שפת האהבה שלכם בעבודה",
     },
     navigation: {
       languageSwitch: "English",
@@ -195,7 +197,8 @@ export const translations: Record<LanguageCode, TranslationDict> = {
         placeholder: "We'd love to hear your thoughts...",
         submit: "Submit",
         thanks: "Thank you for the feedback!",
-      }
+      },
+      copyCta: "Discover your own Workplace Love Language",
     },
     navigation: {
       languageSwitch: "עברית",

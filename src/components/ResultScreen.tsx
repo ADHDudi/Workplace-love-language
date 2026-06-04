@@ -1,6 +1,6 @@
 import { useState, FormEvent, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
+import { arc } from 'd3-shape';
 import { RotateCcw, HeartHandshake, Copy, Check, FileText, Info, MessageSquareHeart, Coffee, Gift, HelpingHand, Sparkles, Mail, Loader2 } from 'lucide-react';
 import { results as results_en, OptionId } from '../data/quizData';
 import { results_he } from '../data/quizData.he';
@@ -10,13 +10,22 @@ import { legalTranslations } from '../data/legalTranslations';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { GoogleGenAI } from "@google/genai";
 import { Link } from 'react-router-dom';
-
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 const OptionIcons: Record<OptionId, any> = {
   A: MessageSquareHeart,
   B: Coffee,
   C: Gift,
   D: HelpingHand,
   E: Sparkles
+};
+
+const OptionColors: Record<OptionId, string> = {
+  A: '#38bdf8', // sky-400
+  B: '#34d399', // emerald-400
+  C: '#fbbf24', // amber-400
+  D: '#fb7185', // rose-400
+  E: '#818cf8'  // indigo-400
 };
 
 interface ResultScreenProps {
@@ -50,7 +59,7 @@ export function ResultScreen({ resultId, scores, userRole, onRestart }: ResultSc
   const [dynamicInsights, setDynamicInsights] = useState<{insights: string, meaning: string, secondaryInsights: string, tips?: string[]} | null>(null);
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
 
-  const manualText = `${result.userManualTemplate}\n\n${t.result.actionableTips}:\n${(dynamicInsights?.tips || result.tips).map(tip => `- ${tip}`).join('\n')}`;
+  const manualText = `${result.userManualTemplate}\n\n${t.result.actionableTips}:\n${(dynamicInsights?.tips || result.tips).map(tip => `- ${tip}`).join('\n')}\n\n${t.result.copyCta}: ${window.location.origin}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(manualText).then(() => {
@@ -128,17 +137,15 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
     if (!feedbackText.trim()) return;
     
     try {
-      const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
-      const { db, auth } = await import('../lib/firebase');
-      
-      await addDoc(collection(db, 'feedbacks'), {
-        text: feedbackText.trim(),
-        createdAt: serverTimestamp()
+      await addDoc(collection(db, 'feedback'), {
+        text: feedbackText,
+        timestamp: serverTimestamp(),
+        userId: null, // Placeholder for future login
+        userEmail: null, // Placeholder for future login
+        isRead: false // Allows manual marking in Firebase console
       });
     } catch(err) {
       console.error("Failed to send feedback", err);
-      const { handleFirestoreError, OperationType } = await import('../lib/firebaseErrors');
-      handleFirestoreError(err, OperationType.CREATE, 'feedbacks');
     }
 
     setFeedbackSent(true);
@@ -170,7 +177,7 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
           <LanguageSwitcher className="px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs md:text-sm" compact />
           <button
             onClick={onRestart}
-            className="px-3 py-1.5 md:px-4 md:py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs md:text-sm font-bold rounded-xl flex items-center gap-2 transition-colors z-10 shrink-0 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-1"
+            className="px-3 py-1.5 md:px-4 md:py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs md:text-sm font-bold rounded-xl flex items-center gap-2 transition-all z-10 shrink-0 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-1 active:scale-95 hover:shadow-sm hover:-translate-y-0.5"
             title={t.common.retake}
           >
             <RotateCcw size={16} />
@@ -212,9 +219,10 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
               <h3 className="font-bold text-[var(--fg-strong)] mb-2 shrink-0">{t.result.analysisInsight}</h3>
               <div className="overflow-y-auto pr-2 rtl:pl-2 rtl:pr-0">
                 {isLoadingInsights ? (
-                  <div className="flex items-center text-[var(--fg-muted)] my-2">
-                    <Loader2 className="w-5 h-5 animate-spin mr-3 rtl:mr-0 rtl:ml-3 shrink-0 text-[var(--accent)]" />
-                    <span className="text-sm font-medium">{language === 'he' ? 'מייצר ניתוח מבוסס AI מותאם אישית...' : 'Generating personalized AI analysis...'}</span>
+                  <div className="flex flex-col gap-3 my-3 animate-pulse w-full">
+                    <div className="h-3 bg-[var(--border-strong)] opacity-20 rounded-full w-3/4"></div>
+                    <div className="h-3 bg-[var(--border-strong)] opacity-20 rounded-full w-full"></div>
+                    <div className="h-3 bg-[var(--border-strong)] opacity-20 rounded-full w-5/6"></div>
                   </div>
                 ) : (
                   <p className="body-sm md:body leading-relaxed">
@@ -235,7 +243,7 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
              <div className="flex flex-wrap md:flex-nowrap gap-2 mb-6 p-1 bg-white/10 rounded-xl w-full md:w-fit shrink-0" role="tablist">
                <button 
                  onClick={() => setActiveTab('analysis')}
-                 className={`flex-1 md:flex-none justify-center px-3 md:px-4 py-2 rounded-lg font-bold text-xs md:text-sm flex items-center gap-1.5 md:gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-1 focus:ring-offset-[var(--ink-900)] ${activeTab === 'analysis' ? 'text-[var(--ink-900)] shadow-[var(--shadow-sm)]' : 'text-slate-300 hover:text-white hover:bg-white/5'} ${activeTab === 'analysis' ? 'bg-[var(--brand-cyan)]' : ''}`}
+                 className={`flex-1 md:flex-none justify-center px-3 md:px-4 py-2 rounded-lg font-bold text-xs md:text-sm flex items-center gap-1.5 md:gap-2 transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-1 focus:ring-offset-[var(--ink-900)] ${activeTab === 'analysis' ? 'text-[var(--ink-900)] shadow-[var(--shadow-sm)]' : 'text-slate-300 hover:text-white hover:bg-white/5'} ${activeTab === 'analysis' ? 'bg-[var(--brand-cyan)]' : ''}`}
                  role="tab"
                  aria-selected={activeTab === 'analysis'}
                  aria-controls="panel-analysis"
@@ -245,7 +253,7 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
                </button>
                <button 
                  onClick={() => setActiveTab('playbook')}
-                 className={`flex-1 md:flex-none justify-center px-3 md:px-4 py-2 rounded-lg font-bold text-xs md:text-sm flex items-center gap-1.5 md:gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-1 focus:ring-offset-[var(--ink-900)] ${activeTab === 'playbook' ? 'text-[var(--ink-900)] shadow-[var(--shadow-sm)]' : 'text-slate-300 hover:text-white hover:bg-white/5'} ${activeTab === 'playbook' ? 'bg-[var(--brand-cyan)]' : ''}`}
+                 className={`flex-1 md:flex-none justify-center px-3 md:px-4 py-2 rounded-lg font-bold text-xs md:text-sm flex items-center gap-1.5 md:gap-2 transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-1 focus:ring-offset-[var(--ink-900)] ${activeTab === 'playbook' ? 'text-[var(--ink-900)] shadow-[var(--shadow-sm)]' : 'text-slate-300 hover:text-white hover:bg-white/5'} ${activeTab === 'playbook' ? 'bg-[var(--brand-cyan)]' : ''}`}
                  role="tab"
                  aria-selected={activeTab === 'playbook'}
                  aria-controls="panel-playbook"
@@ -255,7 +263,7 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
                </button>
                <button 
                  onClick={() => setActiveTab('manual')}
-                 className={`flex-1 md:flex-none justify-center px-3 md:px-4 py-2 rounded-lg font-bold text-xs md:text-sm flex items-center gap-1.5 md:gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-1 focus:ring-offset-[var(--ink-900)] ${activeTab === 'manual' ? 'text-[var(--ink-900)] shadow-[var(--shadow-sm)]' : 'text-slate-300 hover:text-white hover:bg-white/5'} ${activeTab === 'manual' ? 'bg-[var(--brand-cyan)]' : ''}`}
+                 className={`flex-1 md:flex-none justify-center px-3 md:px-4 py-2 rounded-lg font-bold text-xs md:text-sm flex items-center gap-1.5 md:gap-2 transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-1 focus:ring-offset-[var(--ink-900)] ${activeTab === 'manual' ? 'text-[var(--ink-900)] shadow-[var(--shadow-sm)]' : 'text-slate-300 hover:text-white hover:bg-white/5'} ${activeTab === 'manual' ? 'bg-[var(--brand-cyan)]' : ''}`}
                  role="tab"
                  aria-selected={activeTab === 'manual'}
                  aria-controls="panel-manual"
@@ -280,12 +288,12 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
                    })()}
                    {t.result.whatThatMeans}
                  </h3>
-                 {isLoadingInsights ? (
-                   <div className="flex items-center text-slate-400 my-4 justify-center">
-                     <Loader2 className="w-5 h-5 animate-spin mr-3 rtl:mr-0 rtl:ml-3 shrink-0 text-sky-400" />
-                     <span className="text-sm font-medium">{language === 'he' ? 'טוען משמעות מותאמת אישית...' : 'Loading personalized meaning...'}</span>
-                   </div>
-                 ) : (
+                  {isLoadingInsights ? (
+                    <div className="flex flex-col gap-3 my-4 animate-pulse w-full px-4">
+                      <div className="h-3 bg-white/10 rounded-full w-5/6"></div>
+                      <div className="h-3 bg-white/10 rounded-full w-3/4"></div>
+                    </div>
+                  ) : (
                    <>
                      <div className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-5 mb-4 shrink-0">
                        <p className="text-slate-300 leading-relaxed text-sm md:text-base">
@@ -323,22 +331,22 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
                  aria-labelledby="tab-playbook"
                >
                  <div className="bg-indigo-900/40 border border-indigo-400/30 rounded-2xl p-5 shrink-0">
-                   <h4 className="font-bold text-indigo-300 mb-2">
-                                          {t.result.scenarios.crunchTime}
+                   <h4 className="font-bold text-indigo-300 mb-2 flex flex-col gap-1">
+                     {t.result.scenarios.crunchTime}
                    </h4>
                    <p className="text-slate-200 text-sm leading-relaxed">{result.playbook.crunchTime}</p>
                  </div>
                  
                  <div className="bg-rose-900/40 border border-rose-400/30 rounded-2xl p-5 shrink-0">
-                   <h4 className="font-bold text-rose-300 mb-2">
-                                          {t.result.scenarios.burnoutSigns}
+                   <h4 className="font-bold text-rose-300 mb-2 flex flex-col gap-1">
+                     {t.result.scenarios.burnoutSigns}
                    </h4>
                    <p className="text-slate-200 text-sm leading-relaxed">{result.playbook.burnoutSigns}</p>
                  </div>
 
                  <div className="bg-amber-900/40 border border-amber-400/30 rounded-2xl p-5 shrink-0">
-                   <h4 className="font-bold text-amber-300 mb-2">
-                                          {t.result.scenarios.negativeFeedback}
+                   <h4 className="font-bold text-amber-300 mb-2 flex flex-col gap-1">
+                     {t.result.scenarios.negativeFeedback}
                    </h4>
                    <p className="text-slate-200 text-sm leading-relaxed">{result.playbook.negativeFeedback}</p>
                  </div>
@@ -360,7 +368,7 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
                    </span>
                    <button 
                      onClick={handleCopy}
-                     className="px-3 py-1.5 bg-white border border-slate-300 hover:border-sky-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg text-sm font-bold text-slate-700 transition-colors flex items-center gap-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-1"
+                     className="px-3 py-1.5 bg-white border border-slate-300 hover:border-sky-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg text-sm font-bold text-slate-700 transition-all flex items-center gap-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-1 active:scale-95 hover:-translate-y-0.5 hover:shadow-md"
                      aria-label={t.common.copyText}
                      title={t.common.copyText}
                    >
@@ -391,9 +399,10 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
             
             <ul className="space-y-4 flex-grow overflow-y-auto pr-2 rtl:pl-2 rtl:pr-0">
               {isLoadingInsights ? (
-                <div className="flex items-center text-[var(--ok-ink)] my-4 justify-center opacity-70">
-                  <Loader2 className="w-5 h-5 animate-spin mr-3 rtl:mr-0 rtl:ml-3 shrink-0" />
-                  <span className="text-sm font-medium">{language === 'he' ? 'מייצר המלצות מותאמות אישית...' : 'Generating personalized recommendations...'}</span>
+                <div className="flex flex-col gap-4 my-4 animate-pulse w-full">
+                  <div className="flex gap-3"><div className="w-4 h-4 bg-[var(--ok)] opacity-30 rounded-[var(--r-xs)]"></div><div className="h-3 bg-[var(--border)] rounded-full w-full mt-0.5"></div></div>
+                  <div className="flex gap-3"><div className="w-4 h-4 bg-[var(--ok)] opacity-30 rounded-[var(--r-xs)]"></div><div className="h-3 bg-[var(--border)] rounded-full w-5/6 mt-0.5"></div></div>
+                  <div className="flex gap-3"><div className="w-4 h-4 bg-[var(--ok)] opacity-30 rounded-[var(--r-xs)]"></div><div className="h-3 bg-[var(--border)] rounded-full w-4/5 mt-0.5"></div></div>
                 </div>
               ) : (
                 (dynamicInsights?.tips || result.tips).map((tip, idx) => (
@@ -413,114 +422,136 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4, duration: 0.5, ease: "easeOut" }}
-            className="order-4 lg:order-4 lg:col-span-4 rounded-[var(--r-xl)] shadow-[var(--shadow-brand-md)] p-5 md:p-8 text-[var(--paper)] flex flex-col justify-between h-full relative overflow-hidden"
-            style={{ background: 'var(--brand-gradient)' }}
+            className="order-4 lg:order-4 lg:col-span-4 rounded-[var(--r-xl)] shadow-[var(--shadow-sm)] bg-white border border-slate-200 p-5 md:p-8 text-slate-800 flex flex-col justify-between h-full relative overflow-hidden"
           >
-             {/* Subtle background decoration */}
-             <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-             <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-48 h-48 bg-black/10 rounded-full blur-2xl pointer-events-none" />
-
              <div className="flex flex-col h-full relative z-10">
-               <h3 className="h3 text-[var(--paper)] mb-2 shrink-0">{t.result.languageBreakdown}</h3>
+               <h3 className="h3 text-slate-800 mb-2 shrink-0">{t.result.languageBreakdown}</h3>
                
                <motion.div 
                  initial={{ opacity: 0, y: 20 }}
                  animate={{ opacity: 1, y: 0 }}
                  transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
-                 className="h-56 sm:h-48 md:h-64 mb-4 -mx-4 sm:-mx-2 shrink-0 drop-shadow-md" 
+                 className="h-64 sm:h-56 md:h-72 mb-6 mt-4 shrink-0 flex items-center justify-center w-full" 
                  dir="ltr"
                >
-                 <ResponsiveContainer width="100%" height="100%">
-                   <RadarChart cx="50%" cy="50%" outerRadius="70%" data={sortedOptions.map(optionId => ({
-                     optionId: optionId,
-                     subject: scoreLabels[optionId as OptionId],
-                     value: Math.round((scores[optionId] / totalAnswers) * 100)
-                   }))}>
-                     <defs>
-                       <linearGradient id="radarGradient" x1="0" y1="0" x2="0" y2="1">
-                         <stop offset="0%" stopColor="#ffffff" stopOpacity={0.8}/>
-                         <stop offset="100%" stopColor="#ffffff" stopOpacity={0.1}/>
-                       </linearGradient>
-                     </defs>
-                     <PolarGrid stroke="rgba(255,255,255,0.2)" strokeDasharray="3 3" />
-                     <PolarAngleAxis 
-                        dataKey="optionId" 
-                        tick={(props: any) => {
-                          const { payload, x, y, textAnchor } = props;
-                          const id = payload.value as OptionId;
-                          const Icon = OptionIcons[id];
-                          const label = scoreLabels[id];
+                 {(() => {
+                    const size = 260;
+                    const center = size / 2;
+                    const innerRadius = 35;
+                    const maxRadius = 90;
+                    const numOptions = sortedOptions.length;
+                    const angleStep = (Math.PI * 2) / numOptions;
+                    
+                    return (
+                      <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-full overflow-visible max-w-[320px]">
+                        {/* Background Wedges */}
+                        {sortedOptions.map((optionId, i) => {
+                          const startAngle = i * angleStep;
+                          const endAngle = (i + 1) * angleStep;
+                          const color = OptionColors[optionId];
+                          const path = arc()({
+                            innerRadius,
+                            outerRadius: maxRadius,
+                            startAngle,
+                            endAngle,
+                            cornerRadius: 4,
+                            padAngle: 0.05
+                          });
+                          return <path key={`bg-${optionId}`} d={path || undefined} fill={color} opacity={0.15} transform={`translate(${center}, ${center})`} />;
+                        })}
+
+                        {/* Foreground Wedges */}
+                        {sortedOptions.map((optionId, i) => {
+                          const percentage = Math.round((scores[optionId] / totalAnswers) * 100);
+                          const radius = innerRadius + (maxRadius - innerRadius) * (percentage / 100);
+                          const startAngle = i * angleStep;
+                          const endAngle = (i + 1) * angleStep;
+                          const color = OptionColors[optionId];
+                          const path = arc()({
+                            innerRadius,
+                            outerRadius: Math.max(innerRadius + 5, radius),
+                            startAngle,
+                            endAngle,
+                            cornerRadius: 4,
+                            padAngle: 0.05
+                          });
+                          return <path key={`fg-${optionId}`} d={path || undefined} fill={color} transform={`translate(${center}, ${center})`} />;
+                        })}
+
+                        {/* Grid Overlay (Concentric circles) */}
+                        {[1, 2, 3].map(step => {
+                          const r = innerRadius + ((maxRadius - innerRadius) / 4) * step;
+                          return <circle key={step} cx={center} cy={center} r={r} fill="none" stroke="#fff" strokeWidth={1.5} opacity={0.9} />;
+                        })}
+                        
+                        {/* Labels */}
+                        {sortedOptions.map((optionId, i) => {
+                          const midAngle = (i + 0.5) * angleStep;
+                          const labelRadius = maxRadius + 18;
+                          const x = center + labelRadius * Math.sin(midAngle);
+                          const y = center - labelRadius * Math.cos(midAngle);
                           
-                          const iconX = textAnchor === 'start' ? 0 : (textAnchor === 'end' ? -16 : -8);
-                          const textX = textAnchor === 'start' ? 22 : (textAnchor === 'end' ? -22 : 0);
-                          const textY = textAnchor === 'middle' ? 20 : 4;
-                          const iconY = textAnchor === 'middle' ? -8 : -8;
+                          let rot = (midAngle * 180) / Math.PI - 90;
+                          let anchor = "start";
+                          if (midAngle > Math.PI) {
+                            rot += 180;
+                            anchor = "end";
+                          }
 
                           return (
-                            <g transform={`translate(${x},${y})`}>
-                              <Icon 
-                                x={textAnchor === 'middle' ? -8 : iconX} 
-                                y={iconY} 
-                                width={16} 
-                                height={16} 
-                                stroke="rgba(255,255,255,0.9)" 
-                              />
-                              <text 
-                                x={textAnchor === 'middle' ? 0 : textX} 
-                                y={textY} 
-                                textAnchor={textAnchor} 
-                                fill="rgba(255,255,255,0.95)" 
-                                fontSize={11}
-                                fontFamily="var(--font-ui)"
-                                fontWeight={600}
-                              >
-                                {label}
-                              </text>
-                            </g>
+                            <text
+                              key={`label-${optionId}`}
+                              x={x}
+                              y={y}
+                              fill={OptionColors[optionId]}
+                              fontSize={11}
+                              fontWeight="bold"
+                              fontFamily="var(--font-ui)"
+                              textAnchor={anchor}
+                              dominantBaseline="middle"
+                              transform={`rotate(${rot}, ${x}, ${y})`}
+                            >
+                              {scoreLabels[optionId as OptionId]}
+                            </text>
                           );
-                        }} 
-                      />
-                     <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                     <Radar
-                       name={t.common.score}
-                       dataKey="value"
-                       stroke="#fff"
-                       strokeWidth={2}
-                       fill="url(#radarGradient)"
-                       fillOpacity={1}
-                       isAnimationActive={true}
-                       animationBegin={600}
-                       animationDuration={1200}
-                       animationEasing="ease-out"
-                     />
-                     <Tooltip 
-                       contentStyle={{ backgroundColor: 'var(--ink-900)', border: '1px solid var(--ink-700)', borderRadius: 'var(--r-md)', color: '#fff', boxShadow: 'var(--shadow-md)' }}
-                       itemStyle={{ color: '#fff', fontWeight: 'bold' }}
-                       formatter={(value: number) => [`${value}%`, t.common.score]}
-                     />
-                   </RadarChart>
-                 </ResponsiveContainer>
+                        })}
+                        
+                        {/* Center Image / Icon */}
+                        <circle cx={center} cy={center} r={innerRadius - 4} fill="white" stroke="#e2e8f0" strokeWidth={1} />
+                        {(() => {
+                          const Icon = OptionIcons[resultId] || HeartHandshake;
+                          return (
+                            <svg x={center - 12} y={center - 12} width={24} height={24}>
+                              <Icon width={24} height={24} color={OptionColors[resultId]} />
+                            </svg>
+                          );
+                        })()}
+                      </svg>
+                    );
+                 })()}
                </motion.div>
 
                <div className="space-y-4 overflow-y-auto pr-2 flex-grow rtl:pl-2 rtl:pr-0 mt-2">
                  {sortedOptions.map((optionId, index) => {
                    const percentage = Math.round((scores[optionId] / totalAnswers) * 100);
                    const Icon = OptionIcons[optionId];
+                   const color = OptionColors[optionId];
                    return (
                      <div key={optionId} className="shrink-0">
                         <div className="flex justify-between items-center text-sm mb-1.5 rtl:flex-row-reverse">
-                          <span className="opacity-90 font-medium flex items-center gap-2 rtl:flex-row-reverse">
-                            <Icon size={16} className={optionId === resultId ? 'text-white' : 'text-white/70'} />
+                          <span className="font-bold flex items-center gap-2 rtl:flex-row-reverse text-slate-700">
+                            <Icon size={16} color={color} />
                             {scoreLabels[optionId as OptionId]}
                           </span>
-                          <span className="font-bold font-mono tracking-tight">{percentage}%</span>
+                          <span className="font-bold font-mono tracking-tight text-slate-600">{percentage}%</span>
                         </div>
-                        <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden shadow-inner" dir="ltr">
+                        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden shadow-inner" dir="ltr">
                           <motion.div
                              initial={{ width: 0 }}
                              animate={{ width: `${percentage}%` }}
                              transition={{ duration: 1, ease: "easeOut", delay: 0.8 + index * 0.15 }}
-                             className={`h-full origin-left rtl:origin-right ${optionId === resultId ? 'bg-white' : 'bg-white/60'}`}
+                             className="h-full origin-left rtl:origin-right"
+                             style={{ backgroundColor: color }}
                           />
                         </div>
                      </div>
@@ -529,8 +560,8 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
                </div>
              </div>
              
-             <div className="mt-8 pt-4 border-t border-white/20 eyebrow text-center shrink-0">
-                <span className="text-white/80">{t.result.aiPoweredInsight}</span>
+             <div className="mt-8 pt-4 border-t border-slate-200 eyebrow text-center shrink-0">
+                <span className="text-slate-500">{t.result.aiPoweredInsight}</span>
              </div>
           </motion.div>
 
@@ -543,7 +574,7 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
           >
             <button 
               onClick={() => setShowFeedbackModal(true)}
-              className="text-slate-600 hover:text-sky-700 text-sm font-bold transition-colors underline underline-offset-4 decoration-slate-300 hover:decoration-sky-400 flex items-center gap-2 bg-slate-100 hover:bg-sky-50 px-4 py-2 rounded-full border border-slate-300 shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2"
+              className="text-slate-600 hover:text-sky-700 text-sm font-bold transition-all flex items-center gap-2 bg-slate-100 hover:bg-sky-50 px-5 py-2.5 rounded-full border border-slate-200 shadow-sm hover:shadow-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 active:scale-95 hover:-translate-y-0.5"
               title={t.result.feedback.text}
             >
               <MessageSquareHeart size={16} />

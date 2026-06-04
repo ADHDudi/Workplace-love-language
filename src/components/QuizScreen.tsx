@@ -141,17 +141,17 @@ export function QuizScreen({ onComplete, userRole = 'employee' }: QuizScreenProp
                     <button
                       key={option.id}
                       onClick={() => handleSelectOption(option.id)}
-                      className={`text-start rtl:text-right p-4 md:p-6 rounded-[var(--r-lg)] border transition-all duration-[var(--dur-sm)] ease-in-out flex items-start gap-3 md:gap-4 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 ${
+                      className={`w-full text-start rtl:text-right p-4 md:p-6 rounded-[var(--r-lg)] border transition-all duration-[var(--dur-sm)] ease-in-out flex items-start gap-3 md:gap-4 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 active:scale-[0.98] ${
                         isSelected 
-                          ? 'border-[var(--border-brand)] bg-[var(--accent-soft-bg)] text-[var(--accent-soft-fg)] shadow-[var(--shadow-xs)] scale-[0.99] ring-1 ring-[var(--border-brand)]' 
-                          : 'border-[var(--border)] bg-[var(--bg-card)] text-[var(--fg)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-subtle)] hover:shadow-[var(--shadow-xs)]'
+                          ? 'border-[var(--border-brand)] bg-[var(--accent-soft-bg)] text-[var(--accent-soft-fg)] shadow-sm ring-1 ring-[var(--border-brand)]' 
+                          : 'border-[var(--border)] bg-[var(--bg-card)] text-[var(--fg)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-subtle)] hover:shadow-md'
                       }`}
                       aria-pressed={isSelected}
                     >
                       <div className={`w-5 h-5 md:w-6 md:h-6 shrink-0 mt-0.5 md:mt-1 rounded-full border-[1.5px] flex items-center justify-center ${isSelected ? 'border-[var(--accent)]' : 'border-[var(--border-strong)]'}`}>
                         {isSelected && <div className="w-2.5 h-2.5 md:w-3 md:h-3 bg-[var(--accent)] rounded-full" />}
                       </div>
-                      <span className={`text-sm sm:text-base md:text-lg leading-relaxed ${isSelected ? 'font-medium' : ''}`}>
+                      <span className={`flex-1 break-words whitespace-normal text-sm sm:text-base md:text-lg leading-relaxed ${isSelected ? 'font-medium' : ''}`}>
                         {adaptText(option.text)}
                       </span>
                     </button>
