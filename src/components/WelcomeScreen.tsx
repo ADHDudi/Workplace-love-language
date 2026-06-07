@@ -6,6 +6,7 @@ import { legalTranslations } from '../data/legalTranslations';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface WelcomeScreenProps {
   onStart: (role: 'manager' | 'employee') => void;
@@ -32,6 +33,7 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
   const t = translations[language];
   const l = legalTranslations[language].footer;
   const [selectedRole, setSelectedRole] = useState<'manager' | 'employee'>('employee');
+  const { user, signInWithGoogle } = useAuth();
 
   return (
     <div className="flex flex-col items-center px-4 py-6 md:p-8 text-center min-h-[100dvh] w-full bg-[var(--bg)] relative overflow-y-auto overflow-x-hidden">
@@ -121,16 +123,28 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
           </div>
         </motion.div>
 
-        <motion.button
-          variants={itemVariants}
-          onClick={() => onStart(selectedRole)}
-          className="w-full py-4 px-8 text-[var(--paper)] font-bold rounded-[var(--r-lg)] transition-all hover:-translate-y-0.5 active:scale-95 active:shadow-sm animate-pulse-slow flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 shrink-0 mb-8"
-          style={{ background: 'var(--brand-gradient)', boxShadow: 'var(--shadow-brand-md)' }}
-          whileHover={{ boxShadow: 'var(--shadow-brand-lg)' }}
-          aria-label={t.welcome.takeQuiz}
-        >
-          {t.welcome.takeQuiz}
-        </motion.button>
+        {!user ? (
+          <motion.button
+            variants={itemVariants}
+            onClick={signInWithGoogle}
+            className="w-full py-4 px-8 text-[var(--paper)] font-bold rounded-[var(--r-lg)] transition-all hover:-translate-y-0.5 active:scale-95 active:shadow-sm animate-pulse-slow flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 shrink-0 mb-8"
+            style={{ background: 'var(--brand-gradient)', boxShadow: 'var(--shadow-brand-md)' }}
+            whileHover={{ boxShadow: 'var(--shadow-brand-lg)' }}
+          >
+            {language === 'he' ? 'התחבר כדי להמשיך' : 'Sign In to Continue'}
+          </motion.button>
+        ) : (
+          <motion.button
+            variants={itemVariants}
+            onClick={() => onStart(selectedRole)}
+            className="w-full py-4 px-8 text-[var(--paper)] font-bold rounded-[var(--r-lg)] transition-all hover:-translate-y-0.5 active:scale-95 active:shadow-sm animate-pulse-slow flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 shrink-0 mb-8"
+            style={{ background: 'var(--brand-gradient)', boxShadow: 'var(--shadow-brand-md)' }}
+            whileHover={{ boxShadow: 'var(--shadow-brand-lg)' }}
+            aria-label={t.welcome.takeQuiz}
+          >
+            {t.welcome.takeQuiz}
+          </motion.button>
+        )}
 
         <motion.footer variants={itemVariants} className="mt-auto pt-6 border-t border-[var(--border-faint)] w-full flex flex-col items-center gap-6 text-xs text-[var(--fg-muted)] pb-4">
           <a 
