@@ -15,5 +15,14 @@
         "destination": "/index.html"
       }
     ]
+  },
+  "auth": {
+    "providers": {
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Workplace Love Language",
+        "supportEmail": "tsur.david@gmail.com",
+        "authorizedRedirectUris": ["https://gen-lang-client-0330602361.web.app"]
+      }
+    }
   }
 }

@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { WelcomeScreen } from './components/WelcomeScreen';
@@ -12,8 +7,45 @@ import { LegalPage } from './components/LegalPage';
 import { OptionId } from './data/quizData';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { FloatingFeedbackButton } from './components/FloatingFeedbackButton';
+import { AdminFeedbackPanel } from './components/AdminFeedbackPanel';
 
 export type AppState = 'welcome' | 'quiz' | 'result';
+
+function TopBar() {
+  const { user, isAdmin, signInWithGoogle, logout } = useAuth();
+  const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
+
+  return (
+    <>
+      <div className="fixed top-0 left-0 right-0 h-14 bg-white/80 backdrop-blur-md border-b border-slate-200 z-40 flex items-center justify-end px-4 md:px-6 gap-4">
+        {isAdmin && (
+          <button 
+            onClick={() => setIsAdminPanelOpen(true)}
+            className="text-sm font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-3 py-1.5 rounded-lg border border-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
+          >
+            Manage Feedback
+          </button>
+        )}
+        
+        {user ? (
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-slate-600 hidden md:inline" dir="ltr">{user.email}</span>
+            <button onClick={logout} className="text-sm font-bold text-slate-700 hover:text-slate-900 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400">
+              Sign Out
+            </button>
+          </div>
+        ) : (
+          <button onClick={signInWithGoogle} className="text-sm font-bold text-white bg-sky-600 hover:bg-sky-700 px-4 py-1.5 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
+            Sign In
+          </button>
+        )}
+      </div>
+      <AdminFeedbackPanel isOpen={isAdminPanelOpen} onClose={() => setIsAdminPanelOpen(false)} />
+    </>
+  );
+}
 
 function MainApp() {
   const [appState, setAppState] = useState<AppState>('welcome');
@@ -62,8 +94,8 @@ function MainApp() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-slate-200 text-slate-900 font-sans flex justify-center items-center p-0 md:p-6 lg:p-12" dir={dir}>
-      <div className="w-full max-w-5xl bg-slate-50 shadow-2xl md:rounded-[2.5rem] min-h-[100dvh] md:min-h-0 md:aspect-[4/3] md:max-h-[850px] relative overflow-hidden flex flex-col border border-slate-200/60">
+    <div className="min-h-[100dvh] pt-14 bg-slate-200 text-slate-900 font-sans flex justify-center items-center p-0 md:p-6 lg:p-12" dir={dir}>
+      <div className="w-full max-w-5xl bg-slate-50 shadow-2xl md:rounded-[2.5rem] min-h-[100dvh] md:min-h-0 md:aspect-[4/3] md:max-h-[850px] relative overflow-hidden flex flex-col border border-slate-200/60 mt-14 md:mt-0">
         <AnimatePresence mode="wait">
           {appState === 'welcome' && (
             <motion.div
@@ -110,20 +142,24 @@ function MainApp() {
 function AppContent() {
   return (
     <BrowserRouter>
+      <TopBar />
       <Routes>
         <Route path="/" element={<MainApp />} />
         <Route path="/terms" element={<LegalPage pageType="terms" />} />
         <Route path="/privacy" element={<LegalPage pageType="privacy" />} />
         <Route path="/accessibility" element={<LegalPage pageType="accessibility" />} />
       </Routes>
+      <FloatingFeedbackButton />
     </BrowserRouter>
   );
 }
 
 export default function App() {
   return (
-    <LanguageProvider>
-      <AppContent />
-    </LanguageProvider>
+    <AuthProvider>
+      <LanguageProvider>
+        <AppContent />
+      </LanguageProvider>
+    </AuthProvider>
   );
 }

@@ -10,8 +10,6 @@ import { legalTranslations } from '../data/legalTranslations';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { GoogleGenAI } from "@google/genai";
 import { Link } from 'react-router-dom';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 const OptionIcons: Record<OptionId, any> = {
   A: MessageSquareHeart,
   B: Coffee,
@@ -51,10 +49,6 @@ export function ResultScreen({ resultId, scores, userRole, onRestart }: ResultSc
   const secondaryResult = results[secondaryId];
 
   const scoreLabels = t.scoreLabels;
-
-  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [feedbackText, setFeedbackText] = useState("");
-  const [feedbackSent, setFeedbackSent] = useState(false);
 
   const [dynamicInsights, setDynamicInsights] = useState<{insights: string, meaning: string, secondaryInsights: string, tips?: string[]} | null>(null);
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
@@ -131,30 +125,6 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
 
     fetchDynamicInsights();
   }, [resultId, scores, language, result.title, result.subtitle]);
-
-  const handleFeedbackSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!feedbackText.trim()) return;
-    
-    try {
-      await addDoc(collection(db, 'feedback'), {
-        text: feedbackText,
-        timestamp: serverTimestamp(),
-        userId: null, // Placeholder for future login
-        userEmail: null, // Placeholder for future login
-        isRead: false // Allows manual marking in Firebase console
-      });
-    } catch(err) {
-      console.error("Failed to send feedback", err);
-    }
-
-    setFeedbackSent(true);
-    setTimeout(() => {
-      setShowFeedbackModal(false);
-      setFeedbackSent(false);
-      setFeedbackText("");
-    }, 2500);
-  };
 
   return (
     <div className="flex flex-col w-full h-full bg-[var(--bg)] overflow-hidden font-ui text-[var(--fg)]">
@@ -565,23 +535,6 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
              </div>
           </motion.div>
 
-          {/* Feedback Link */}
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="order-5 lg:col-span-12 flex justify-center mt-4 mb-2"
-          >
-            <button 
-              onClick={() => setShowFeedbackModal(true)}
-              className="text-slate-600 hover:text-sky-700 text-sm font-bold transition-all flex items-center gap-2 bg-slate-100 hover:bg-sky-50 px-5 py-2.5 rounded-full border border-slate-200 shadow-sm hover:shadow-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 active:scale-95 hover:-translate-y-0.5"
-              title={t.result.feedback.text}
-            >
-              <MessageSquareHeart size={16} />
-              {t.result.feedback.text}
-            </button>
-          </motion.div>
-
         </div>
 
         <footer className="mt-8 pt-6 border-t border-[var(--border-faint)] w-full flex flex-col items-center gap-6 text-xs text-[var(--fg-muted)] pb-4">
@@ -632,66 +585,6 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
           </nav>
         </footer>
       </main>
-
-      {/* Feedback Modal */}
-      {showFeedbackModal && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="feedback-dialog-title"
-        >
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 max-w-md w-full border border-slate-100"
-          >
-            {feedbackSent ? (
-               <div className="flex flex-col items-center justify-center py-8 text-center text-emerald-600">
-                 <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
-                   <Check className="w-8 h-8" />
-                 </div>
-                 <h3 className="text-xl font-bold" id="feedback-dialog-title">{t.result.feedback.thanks}</h3>
-               </div>
-            ) : (
-              <form onSubmit={handleFeedbackSubmit} className="flex flex-col gap-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center shrink-0">
-                    <MessageSquareHeart size={20} />
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-800" id="feedback-dialog-title">{t.result.feedback.text}</h3>
-                </div>
-                
-                <textarea 
-                  value={feedbackText}
-                  onChange={(e) => setFeedbackText(e.target.value)}
-                  placeholder={t.result.feedback.placeholder}
-                  className="w-full h-32 p-4 bg-slate-50 border border-slate-300 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 text-slate-800"
-                  required
-                  aria-label={t.result.feedback.placeholder}
-                />
-                
-                <div className="flex gap-3 justify-end mt-2">
-                  <button 
-                    type="button"
-                    onClick={() => setShowFeedbackModal(false)}
-                    className="px-5 py-2.5 rounded-xl font-bold text-slate-700 hover:bg-slate-200 hover:text-slate-900 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
-                  >
-                    {t.common.cancel}
-                  </button>
-                  <button 
-                    type="submit"
-                    disabled={!feedbackText.trim()}
-                    className="px-6 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-sky-600/30 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2"
-                  >
-                    {t.result.feedback.submit}
-                  </button>
-                </div>
-              </form>
-            )}
-          </motion.div>
-        </div>
-      )}
     </div>
   );
 }
