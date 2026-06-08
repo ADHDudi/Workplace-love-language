@@ -149,7 +149,6 @@ function AppContent() {
         <Route path="/privacy" element={<LegalPage pageType="privacy" />} />
         <Route path="/accessibility" element={<LegalPage pageType="accessibility" />} />
       </Routes>
-      <FloatingFeedbackButton />
     </BrowserRouter>
   );
 }

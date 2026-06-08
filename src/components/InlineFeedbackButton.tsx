@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { FeedbackModal } from './FeedbackModal';
 import { useLanguage } from '../contexts/LanguageContext';
 
-export function FloatingFeedbackButton() {
+export function InlineFeedbackButton() {
   const { user, signInWithGoogle } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const { language } = useLanguage();
@@ -20,20 +20,19 @@ export function FloatingFeedbackButton() {
   };
 
   return (
-    <>
+    <div className="w-full flex justify-center mt-6 mb-2 shrink-0">
       <button
         onClick={handleClick}
-        className="fixed bottom-6 right-6 z-[60] bg-sky-600 hover:bg-sky-700 text-white px-5 py-3 rounded-full shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-sky-500/50 flex items-center gap-2 font-bold"
-        title="Send Feedback"
+        className="bg-sky-600 hover:bg-sky-700 text-white px-6 py-3.5 rounded-[var(--r-lg)] shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 active:scale-95 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 flex items-center justify-center gap-2.5 font-bold text-sm w-full max-w-sm"
       >
         <MessageSquareHeart size={20} />
-        {language === 'he' ? 'תן משוב' : 'Provide Feedback'}
+        {language === 'he' ? 'שתף/י איתנו משוב' : 'Provide Feedback'}
       </button>
       <FeedbackModal 
         isOpen={isOpen} 
         onClose={() => setIsOpen(false)} 
-        source="floating_button"
+        source="result_page"
       />
-    </>
+    </div>
   );
 }

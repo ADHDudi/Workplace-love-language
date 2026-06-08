@@ -10,6 +10,7 @@ import { legalTranslations } from '../data/legalTranslations';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { GoogleGenAI } from "@google/genai";
 import { Link } from 'react-router-dom';
+import { InlineFeedbackButton } from './InlineFeedbackButton';
 const OptionIcons: Record<OptionId, any> = {
   A: MessageSquareHeart,
   B: Coffee,
@@ -536,6 +537,8 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
           </motion.div>
 
         </div>
+
+        <InlineFeedbackButton />
 
         <footer className="mt-8 pt-6 border-t border-[var(--border-faint)] w-full flex flex-col items-center gap-6 text-xs text-[var(--fg-muted)] pb-4">
           <a 
