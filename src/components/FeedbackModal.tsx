@@ -1,6 +1,6 @@
 import { useState, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageSquareHeart, Check } from 'lucide-react';
+import { MessageSquareHeart, Check, Star } from 'lucide-react';
 import { saveUserFeedback } from '../lib/dbService';
 import { useLanguage } from '../contexts/LanguageContext';
 import { translations } from '../data/translations';
@@ -13,6 +13,8 @@ interface FeedbackModalProps {
 
 export function FeedbackModal({ isOpen, onClose, source }: FeedbackModalProps) {
   const [feedbackText, setFeedbackText] = useState("");
+  const [rating, setRating] = useState(0);
+  const [hoveredRating, setHoveredRating] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState(false);
   const { language } = useLanguage();
@@ -20,12 +22,13 @@ export function FeedbackModal({ isOpen, onClose, source }: FeedbackModalProps) {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!feedbackText.trim()) return;
+    if (!feedbackText.trim() && rating === 0) return;
     
     setIsSubmitting(true);
     try {
       await saveUserFeedback({
         feedbackText,
+        rating,
         source
       });
       setFeedbackSent(true);
@@ -33,6 +36,7 @@ export function FeedbackModal({ isOpen, onClose, source }: FeedbackModalProps) {
         onClose();
         setFeedbackSent(false);
         setFeedbackText("");
+        setRating(0);
       }, 2500);
     } catch (error) {
       console.error("Failed to submit feedback", error);
@@ -70,13 +74,40 @@ export function FeedbackModal({ isOpen, onClose, source }: FeedbackModalProps) {
                   </div>
                   <h3 className="text-xl font-bold text-slate-800">{t.result.feedback.text}</h3>
                 </div>
+
+                <div className="flex flex-col items-center mb-2">
+                  <div className="flex gap-2" dir="ltr">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setRating(star)}
+                        onMouseEnter={() => setHoveredRating(star)}
+                        onMouseLeave={() => setHoveredRating(0)}
+                        className={`p-1 transition-colors ${
+                          (hoveredRating || rating) >= star 
+                            ? 'text-amber-400' 
+                            : 'text-slate-200'
+                        }`}
+                      >
+                        <Star 
+                          size={32} 
+                          className={(hoveredRating || rating) >= star ? 'fill-amber-400' : ''} 
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-xs text-slate-400 mt-2">
+                    {language === 'he' ? 'דרג את החוויה שלך' : 'Rate your experience'}
+                  </span>
+                </div>
                 
                 <textarea 
                   value={feedbackText}
                   onChange={(e) => setFeedbackText(e.target.value)}
                   placeholder={t.result.feedback.placeholder}
                   className="w-full h-32 p-4 bg-slate-50 border border-slate-300 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 text-slate-800"
-                  required
+                  required={rating === 0}
                 />
                 
                 <div className="flex gap-3 justify-end mt-2">
@@ -90,7 +121,7 @@ export function FeedbackModal({ isOpen, onClose, source }: FeedbackModalProps) {
                   </button>
                   <button 
                     type="submit"
-                    disabled={!feedbackText.trim() || isSubmitting}
+                    disabled={(!feedbackText.trim() && rating === 0) || isSubmitting}
                     className="px-6 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-sky-600/30 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 flex items-center justify-center"
                   >
                     {isSubmitting ? <span className="animate-pulse">...</span> : t.result.feedback.submit}
