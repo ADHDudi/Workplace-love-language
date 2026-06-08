@@ -22,7 +22,7 @@ export function FeedbackModal({ isOpen, onClose, source }: FeedbackModalProps) {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!feedbackText.trim() && rating === 0) return;
+    if (rating === 0) return;
     
     setIsSubmitting(true);
     try {
@@ -107,7 +107,6 @@ export function FeedbackModal({ isOpen, onClose, source }: FeedbackModalProps) {
                   onChange={(e) => setFeedbackText(e.target.value)}
                   placeholder={t.result.feedback.placeholder}
                   className="w-full h-32 p-4 bg-slate-50 border border-slate-300 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 text-slate-800"
-                  required={rating === 0}
                 />
                 
                 <div className="flex gap-3 justify-end mt-2">
@@ -121,7 +120,7 @@ export function FeedbackModal({ isOpen, onClose, source }: FeedbackModalProps) {
                   </button>
                   <button 
                     type="submit"
-                    disabled={(!feedbackText.trim() && rating === 0) || isSubmitting}
+                    disabled={rating === 0 || isSubmitting}
                     className="px-6 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-sky-600/30 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 flex items-center justify-center"
                   >
                     {isSubmitting ? <span className="animate-pulse">...</span> : t.result.feedback.submit}

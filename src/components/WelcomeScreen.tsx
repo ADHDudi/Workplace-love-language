@@ -7,6 +7,7 @@ import { LanguageSwitcher } from './LanguageSwitcher';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
+import { LoginCard } from './LoginCard';
 
 interface WelcomeScreenProps {
   onStart: (role: 'manager' | 'employee') => void;
@@ -93,46 +94,42 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
           </p>
         </motion.div>
 
-        <motion.div variants={itemVariants} className="w-full mb-8">
-          <h4 className="body-sm font-semibold mb-3 text-center">
-            {t.welcome.roleSelector.title}
-          </h4>
-          <div className="flex gap-4 justify-center">
-            <button
-              onClick={() => setSelectedRole('employee')}
-              className={`flex-1 max-w-40 py-3 px-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all hover:-translate-y-0.5 hover:shadow-sm active:scale-95 active:shadow-none ${
-                selectedRole === 'employee' 
-                  ? 'border-[var(--accent)] bg-[var(--accent-soft-bg)] text-[var(--accent)]' 
-                  : 'border-[var(--border)] bg-card text-[var(--fg-muted)] hover:border-[var(--border-strong)]'
-              }`}
-            >
-              <User className="w-6 h-6" />
-              <span className="text-sm font-semibold">{t.welcome.roleSelector.employee}</span>
-            </button>
-            <button
-              onClick={() => setSelectedRole('manager')}
-              className={`flex-1 max-w-40 py-3 px-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all hover:-translate-y-0.5 hover:shadow-sm active:scale-95 active:shadow-none ${
-                selectedRole === 'manager' 
-                  ? 'border-[var(--accent)] bg-[var(--accent-soft-bg)] text-[var(--accent)]' 
-                  : 'border-[var(--border)] bg-card text-[var(--fg-muted)] hover:border-[var(--border-strong)]'
-              }`}
-            >
-              <Users className="w-6 h-6" />
-              <span className="text-sm font-semibold">{t.welcome.roleSelector.manager}</span>
-            </button>
-          </div>
-        </motion.div>
+        {user && (
+          <motion.div variants={itemVariants} className="w-full mb-8">
+            <h4 className="body-sm font-semibold mb-3 text-center">
+              {t.welcome.roleSelector.title}
+            </h4>
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={() => setSelectedRole('employee')}
+                className={`flex-1 max-w-40 py-3 px-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all hover:-translate-y-0.5 hover:shadow-sm active:scale-95 active:shadow-none ${
+                  selectedRole === 'employee' 
+                    ? 'border-[var(--accent)] bg-[var(--accent-soft-bg)] text-[var(--accent)]' 
+                    : 'border-[var(--border)] bg-card text-[var(--fg-muted)] hover:border-[var(--border-strong)]'
+                }`}
+              >
+                <User className="w-6 h-6" />
+                <span className="text-sm font-semibold">{t.welcome.roleSelector.employee}</span>
+              </button>
+              <button
+                onClick={() => setSelectedRole('manager')}
+                className={`flex-1 max-w-40 py-3 px-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all hover:-translate-y-0.5 hover:shadow-sm active:scale-95 active:shadow-none ${
+                  selectedRole === 'manager' 
+                    ? 'border-[var(--accent)] bg-[var(--accent-soft-bg)] text-[var(--accent)]' 
+                    : 'border-[var(--border)] bg-card text-[var(--fg-muted)] hover:border-[var(--border-strong)]'
+                }`}
+              >
+                <Users className="w-6 h-6" />
+                <span className="text-sm font-semibold">{t.welcome.roleSelector.manager}</span>
+              </button>
+            </div>
+          </motion.div>
+        )}
 
         {!user ? (
-          <motion.button
-            variants={itemVariants}
-            onClick={signInWithGoogle}
-            className="w-full py-4 px-8 text-[var(--paper)] font-bold rounded-[var(--r-lg)] transition-all hover:-translate-y-0.5 active:scale-95 active:shadow-sm animate-pulse-slow flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 shrink-0 mb-8"
-            style={{ background: 'var(--brand-gradient)', boxShadow: 'var(--shadow-brand-md)' }}
-            whileHover={{ boxShadow: 'var(--shadow-brand-lg)' }}
-          >
-            {language === 'he' ? 'התחבר כדי להמשיך' : 'Sign In to Continue'}
-          </motion.button>
+          <motion.div variants={itemVariants} className="w-full mb-8">
+            <LoginCard />
+          </motion.div>
         ) : (
           <motion.button
             variants={itemVariants}
