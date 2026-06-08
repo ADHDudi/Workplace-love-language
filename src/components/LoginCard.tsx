@@ -44,8 +44,7 @@ export function LoginCard() {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto flex flex-col items-center">
-      <div className="w-full bg-white rounded-[2rem] shadow-sm border border-slate-100 p-8 pt-10">
+    <div className="w-full bg-card p-5 md:p-8 rounded-[var(--r-xl)] border border-[var(--border)] shadow-md text-left rtl:text-right shrink-0">
         
         {/* Google Sign In */}
         <button 
@@ -125,8 +124,6 @@ export function LoginCard() {
             {isSignUp ? "Sign In" : "Sign up"}
           </button>
         </div>
-      </div>
-
     </div>
   );
 }
