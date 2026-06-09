@@ -10,6 +10,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AdminFeedbackPanel } from './components/AdminFeedbackPanel';
 import { ClipboardList } from 'lucide-react';
+import { calculateScores, determinePrimaryStyle } from './lib/scoring';
 
 export type AppState = 'welcome' | 'quiz' | 'result';
 
@@ -65,26 +66,10 @@ function MainApp() {
 
   const handleComplete = (finalAnswers: Record<number, OptionId>) => {
     setAnswers(finalAnswers);
-    // Calculate result
-    const counts: Record<OptionId, number> = { A: 0, B: 0, C: 0, D: 0, E: 0 };
-    Object.values(finalAnswers).forEach(answer => {
-      counts[answer]++;
-    });
-    
+    const counts = calculateScores(finalAnswers);
     setScores(counts);
-
-    let maxCount = -1;
-    let maxOption: OptionId = 'A';
-    
-    // Find the one with max count
-    (Object.keys(counts) as OptionId[]).forEach(key => {
-      if (counts[key] > maxCount) {
-        maxCount = counts[key];
-        maxOption = key as OptionId;
-      }
-    });
-
-    setFinalResult(maxOption);
+    const primary = determinePrimaryStyle(counts);
+    setFinalResult(primary);
     setAppState('result');
   };
 
