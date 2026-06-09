@@ -420,14 +420,14 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
                           const startAngle = i * angleStep;
                           const endAngle = (i + 1) * angleStep;
                           const color = OptionColors[optionId];
-                          const path = arc()({
-                            innerRadius,
-                            outerRadius: maxRadius,
-                            startAngle,
-                            endAngle,
-                            cornerRadius: 4,
-                            padAngle: 0.05
-                          });
+                          const path = arc()
+                            .cornerRadius(4)({
+                              innerRadius,
+                              outerRadius: maxRadius,
+                              startAngle,
+                              endAngle,
+                              padAngle: 0.05
+                            } as any);
                           return <path key={`bg-${optionId}`} d={path || undefined} fill={color} opacity={0.15} transform={`translate(${center}, ${center})`} />;
                         })}
 
@@ -438,14 +438,14 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
                           const startAngle = i * angleStep;
                           const endAngle = (i + 1) * angleStep;
                           const color = OptionColors[optionId];
-                          const path = arc()({
-                            innerRadius,
-                            outerRadius: Math.max(innerRadius + 5, radius),
-                            startAngle,
-                            endAngle,
-                            cornerRadius: 4,
-                            padAngle: 0.05
-                          });
+                          const path = arc()
+                            .cornerRadius(4)({
+                              innerRadius,
+                              outerRadius: Math.max(innerRadius + 5, radius),
+                              startAngle,
+                              endAngle,
+                              padAngle: 0.05
+                            } as any);
                           return <path key={`fg-${optionId}`} d={path || undefined} fill={color} transform={`translate(${center}, ${center})`} />;
                         })}
 
