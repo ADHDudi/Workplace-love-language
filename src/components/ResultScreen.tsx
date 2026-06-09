@@ -172,10 +172,10 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
                 <span className="px-3 py-1 bg-[var(--accent-soft-bg)] text-[var(--accent-soft-fg)] rounded-full text-xs font-bold uppercase tracking-widest">
                   {t.result.primaryLanguage}
                 </span>
-                <h2 className="h2 mt-3 md:mt-4">
+                <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mt-3 md:mt-4">
                   {result.title}
                   <br/>
-                  <span className="gradient-text">{result.subtitle}</span>
+                  <span className="gradient-text text-xl md:text-3xl">{result.subtitle}</span>
                 </h2>
               </div>
               <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 bg-[var(--accent-soft-bg)] rounded-[var(--r-lg)] flex items-center justify-center text-[var(--accent)] shrink-0 shadow-[var(--shadow-inset-sm)]">

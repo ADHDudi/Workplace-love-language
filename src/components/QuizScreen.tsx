@@ -101,7 +101,7 @@ export function QuizScreen({ onComplete, userRole = 'employee' }: QuizScreenProp
 
       {/* Progress Bar Container */}
       <div 
-        className="w-full bg-[var(--border)] h-1 overflow-hidden shrink-0" 
+        className="w-full bg-[var(--border)] h-2 overflow-hidden shrink-0" 
         dir="ltr"
         role="progressbar"
         aria-valuenow={Math.round(progress)}
@@ -117,7 +117,9 @@ export function QuizScreen({ onComplete, userRole = 'employee' }: QuizScreenProp
       </div>
 
       {/* Question Content */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 flex justify-center">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 flex justify-center relative">
+        {/* Scroll fade hint */}
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[var(--bg)] to-transparent z-10" />
         <div className="w-full max-w-2xl">
           <AnimatePresence mode="wait">
             <motion.div
@@ -128,30 +130,37 @@ export function QuizScreen({ onComplete, userRole = 'employee' }: QuizScreenProp
               transition={{ duration: 0.2 }}
               className="flex flex-col h-full"
             >
-              <div className="bg-[var(--bg-card)] rounded-[var(--r-xl)] border border-[var(--border)] shadow-[var(--shadow-sm)] p-5 md:p-8 mb-4 md:mb-6">
-                <h2 className="h2 text-center md:text-start">
+              {/* Question card — capped height on mobile so answers always peek */}
+              <div className="bg-[var(--bg-card)] rounded-[var(--r-xl)] border border-[var(--border)] shadow-[var(--shadow-sm)] p-4 md:p-8 mb-4 md:mb-6 max-h-[38vh] md:max-h-none overflow-y-auto">
+                <h2
+                  className={`text-center md:text-start font-bold leading-snug ${
+                    adaptText(question.text).length > 120
+                      ? 'text-base sm:text-lg md:text-xl'
+                      : 'text-xl sm:text-2xl md:text-3xl'
+                  }`}
+                >
                   {adaptText(question.text)}
                 </h2>
               </div>
               
-              <div className="flex flex-col gap-3 md:gap-4 pb-8">
+              <div className="flex flex-col gap-2.5 md:gap-4 pb-12">
                 {question.options.map((option) => {
                   const isSelected = answers[question.id] === option.id;
                   return (
                     <button
                       key={option.id}
                       onClick={() => handleSelectOption(option.id)}
-                      className={`w-full text-start rtl:text-right p-4 md:p-6 rounded-[var(--r-lg)] border transition-all duration-[var(--dur-sm)] ease-in-out flex items-start gap-3 md:gap-4 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 active:scale-[0.98] ${
+                      className={`w-full text-start rtl:text-right py-3.5 px-4 md:p-6 rounded-[var(--r-lg)] border transition-all duration-[var(--dur-sm)] ease-in-out flex items-start gap-2.5 md:gap-4 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 active:scale-[0.98] ${
                         isSelected 
                           ? 'border-[var(--border-brand)] bg-[var(--accent-soft-bg)] text-[var(--accent-soft-fg)] shadow-sm ring-1 ring-[var(--border-brand)]' 
                           : 'border-[var(--border)] bg-[var(--bg-card)] text-[var(--fg)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-subtle)] hover:shadow-md'
                       }`}
                       aria-pressed={isSelected}
                     >
-                      <div className={`w-5 h-5 md:w-6 md:h-6 shrink-0 mt-0.5 md:mt-1 rounded-full border-[1.5px] flex items-center justify-center ${isSelected ? 'border-[var(--accent)]' : 'border-[var(--border-strong)]'}`}>
-                        {isSelected && <div className="w-2.5 h-2.5 md:w-3 md:h-3 bg-[var(--accent)] rounded-full" />}
+                      <div className={`w-5 h-5 shrink-0 mt-0.5 rounded-full border-[1.5px] flex items-center justify-center ${isSelected ? 'border-[var(--accent)]' : 'border-[var(--border-strong)]'}`}>
+                        {isSelected && <div className="w-2.5 h-2.5 bg-[var(--accent)] rounded-full" />}
                       </div>
-                      <span className={`flex-1 break-words whitespace-normal text-sm sm:text-base md:text-lg leading-relaxed ${isSelected ? 'font-medium' : ''}`}>
+                      <span className={`flex-1 break-words whitespace-normal text-sm md:text-base leading-snug ${isSelected ? 'font-medium' : ''}`}>
                         {adaptText(option.text)}
                       </span>
                     </button>
