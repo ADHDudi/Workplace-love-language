@@ -75,6 +75,11 @@ The main questionnaire flow is managed by state variables in `MainApp` inside [s
   3. Selecting an answer logs the key (`A`, `B`, `C`, `D`, `E`) for the current question index, increments progress, and updates the view to the next question.
   4. Upon answering the final question, the system triggers `onComplete(finalAnswers)`, calculates the result, and transitions to the `result` state.
 
+### 3.3 Progress Persistence
+* **Incremental Saves:** As the user progresses through the quiz, their state (role, current question index, and answers) is saved automatically via `progressService.ts` utilizing local storage (`localStorage`).
+* **Resumption:** If a user closes the browser or refreshes the page, the application detects saved progress on initialization and seamlessly resumes the session from the exact question they left off at.
+* **Clearing Progress:** The progress is successfully cleared once the user completes the assessment or chooses to explicitly clear it via a UI action.
+
 ---
 
 ## 4. Interactive Results View (`ResultScreen`)
@@ -122,6 +127,15 @@ The result screen leverages the `@google/genai` SDK and the `gemini-2.5-flash` m
   * `tips`: Array of 3 actionable tips for peers and managers to work with the user.
 * **Graceful Degradation:** If the Gemini API key is missing or the call fails, the UI falls back to showing static pre-written insights from the localized data.
 
+### 4.5 Shareable Public Profiles
+* **Persistence:** Final assessment results are automatically persisted to Firestore inside the `results` collection when a user completes the quiz while authenticated.
+* **Link Generation:** A "Share Profile" button is available in the results screen, which copies a unique direct URL mapping to the user's result ID.
+* **Read-Only View:** When an unauthenticated or different user visits a shared link (`/shared-result/:id`), the application loads the specific snapshot from Firestore and displays a read-only presentation of the user's profile and analysis.
+
+### 4.6 Start All Over Again
+* **Action:** A universally available "Start All Over Again" button exists on all result tabs to permit users to retake the quiz entirely.
+* **State Wipe:** Clicking this button wipes any local progress states and reroutes the application back to the `welcome` root screen, providing a seamless loop for repeated attempts.
+
 ---
 
 ## 5. Reusable Feedback System
@@ -151,9 +165,9 @@ A panel that slides in from the right (`fixed inset-y-0 right-0 z-[100]`), acces
 
 ## 6. Firestore Database & Security Rules
 
-Firestore is used for persistent feedback storage in the `feedback` collection.
+Firestore is used for persistent storage in two main collections: `feedback` and `results`.
 
-### 6.1 Data Schema
+### 6.1 Feedback Collection Schema
 Each document in the `feedback` collection conforms to the following schema:
 
 | Field | Type | Description |
@@ -167,15 +181,51 @@ Each document in the `feedback` collection conforms to the following schema:
 | `read` | Boolean | Read/Unread flag for administrative triage. |
 | `createdAt` | Timestamp | Firestore server timestamp. |
 
-### 6.2 Security Rules
-Configured in [firestore.rules](file:///Users/davidtsur/Development/Projects/workplace-love-language/firestore.rules):
-* **Write Rules (Create):** Anyone authenticated can create a document, provided their `userId` matches the authenticated user ID and their `userEmail` matches the auth token email.
-* **Read/Update Rules:** Restricted solely to the admin email `tsur.david@gmail.com`.
+### 6.2 Results Collection Schema
+Each document in the `results` collection conforms to the following schema:
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | String (Doc ID) | Matches the user's UID for 1:1 mapping. |
+| `userId` | String | Firebase Authentication UID. |
+| `userEmail` | String | Email address of the submitter. |
+| `displayName` | String | Display name of the submitter. |
+| `role` | String | 'manager' or 'employee'. |
+| `finalResult` | String | The user's primary appreciation style (A-E). |
+| `counts` | Object | Tally of all selected options. |
+| `createdAt` | Timestamp | Firestore server timestamp. |
+| `updatedAt` | Timestamp | Firestore server timestamp. |
+
+### 6.3 Security Rules
+Configured in `firestore.rules`:
+* **Feedback Collection:** 
+  * Any authenticated user can write feedback, provided their `userId` matches the authenticated user ID and their `userEmail` matches the auth token email.
+  * Restricted solely to the admin email `tsur.david@gmail.com` for reading and updating.
+* **Results Collection:**
+  * Any authenticated user can create/update their own assessment result (document ID must match user ID).
+  * Anyone can read a specific user's document for public profile sharing.
+  * Only the administrator (`tsur.david@gmail.com`) can execute `list` operations to query all results.
 * **Delete Rules:** Deleted operations are blocked globally (`allow delete: if false`).
 
 ---
 
-## 7. Bilingual Support & Formatting
+## 7. Team Dashboard & Aggregate Analytics
+
+A specialized view explicitly built for organizational administrators to review and dissect collective team data.
+
+### 7.1 Access & Routing
+* **Protected Entry:** Available only when the authenticated user is the designated admin. A "Dashboard" button mounts on the top navigation bar.
+* **State Management:** Triggering this button transitions the active `AppState` to `team-dashboard`.
+
+### 7.2 Analytics Overview
+* **Aggregated Fetching:** The system invokes `listAllResults()` directly bypassing normal restrictive quotas due to admin authorization. It securely compiles all team members' submitted assessments.
+* **Metric Cards:** Generates summary statistics tracking the total number of assessments taken, breaking them down into absolute numbers for "Managers" and "Employees".
+* **Language Distribution Graph:** Dynamically computes and plots the total frequency of each primary Love Language across the entire team, presenting them via custom visual progress bars that map strictly to the application's core color palette.
+* **Recent Activity Table:** Outputs a tabular audit log indicating exactly who took the test, when they took it, and what their primary style resulted in.
+
+---
+
+## 8. Bilingual Support & Formatting
 
 * **Language Context:** Managed by `LanguageProvider` supporting Hebrew (`he`) and English (`en`).
 * **Visual Direction:** Toggles HTML/document writing direction (`dir="rtl"` for Hebrew, `dir="ltr"` for English) affecting layout flows, margins, align-starts, and chevron navigation arrows.

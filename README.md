@@ -16,6 +16,9 @@ An innovative, bilingual assessment and coaching platform built to evaluate how 
   * **Encouraging Touchpoints:** Excitement, celebratory syncs, and micro-wins
 * **Interactive SVG Visualization:** Concentric radial wedge graph showing the exact percentage breakdown of the user's appreciation style profile.
 * **Gemini AI Coaching Insights:** Uses the `@google/genai` SDK and the `gemini-2.5-flash` model to analyze the user's role and score distribution, delivering a personalized professional playbook and action plan.
+* **Team Dashboard & Aggregate Analytics:** An admin-only view that aggregates assessment data, displaying total metrics and team dynamics visually.
+* **Shareable Public Profiles:** Generates unique, read-only links for users to easily share their appreciation styles with their teams.
+* **State Persistence:** Automatically saves in-progress quiz answers to local storage and persists finalized results securely to Firestore.
 * **Bilingual Legal Compliance:** Features complete terms of use, privacy policy, and accessibility statements in both Hebrew and English.
 * **Global Reusable Feedback System:** Includes a floating feedback widget, a popup submission form, and an interactive admin triage dashboard.
 
@@ -46,6 +49,7 @@ An innovative, bilingual assessment and coaching platform built to evaluate how 
 │   │   ├── WelcomeScreen.tsx    # Role selector, welcome text, and login gating
 │   │   ├── QuizScreen.tsx       # Live assessment questionnaire
 │   │   ├── ResultScreen.tsx     # Custom radial SVGs and Gemini coaching analysis
+│   │   ├── TeamDashboard.tsx    # Admin aggregate analytics view
 │   │   ├── FloatingFeedback.tsx # Global floating feedback trigger
 │   │   ├── FeedbackModal.tsx    # Client feedback submission dialog
 │   │   ├── AdminFeedbackPanel.tsx # Admin feedback reader and read/unread toggles
@@ -61,7 +65,8 @@ An innovative, bilingual assessment and coaching platform built to evaluate how 
 │   │   └── legalTranslations.ts # Static legal content (Terms, Privacy, Accessibility)
 │   └── lib/                     # Firebase and database initialization utilities
 │       ├── firebase.ts          # Firebase SDK initialization
-│       ├── dbService.ts         # Firestore operations for feedback
+│       ├── dbService.ts         # Firestore operations for feedback and results
+│       ├── progressService.ts   # LocalStorage persistence for quiz state
 │       └── firebaseErrors.ts    # User-facing error message mapping
 ```
 
@@ -69,10 +74,17 @@ An innovative, bilingual assessment and coaching platform built to evaluate how 
 
 ## 🔒 Security & Firestore Rules
 
-Firestore security is enforced in `firestore.rules`:
+Firestore security is enforced in `firestore.rules` for two main collections:
+
+### Feedback Collection (`feedback`)
 * **Submitting Feedback:** Any authenticated user can write feedback, provided their user ID matches the document's `userId` and their email matches the document's `userEmail`.
 * **Managing Feedback:** Only the administrator (`tsur.david@gmail.com`) is allowed to read or update feedback documents.
 * **Deletions:** Globally blocked (`allow delete: if false`).
+
+### Results Collection (`results`)
+* **Creating Results:** Any authenticated user can save their assessment results, provided their user ID matches the document ID.
+* **Public Reads:** Individual documents can be read by anyone (facilitating shareable public profiles).
+* **Listing (Aggregate Dashboard):** Only the administrator can query the entire collection (using `list`).
 
 ---
 
