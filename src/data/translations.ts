@@ -3,8 +3,11 @@ export type LanguageCode = 'he' | 'en';
 export interface TranslationDict {
   common: {
     retake: string;
+    startOver: string;
     copyText: string;
     copied: string;
+    shareProfile: string;
+    linkCopied: string;
     score: string;
     cancel: string;
   };
@@ -72,8 +75,11 @@ export const translations: Record<LanguageCode, TranslationDict> = {
   he: {
     common: {
       retake: "התחל/י מחדש",
+      startOver: "התחל/י מההתחלה",
       copyText: "העתק טקסט",
       copied: "הועתק!",
+      shareProfile: "שתף את הפרופיל שלי",
+      linkCopied: "הקישור הועתק!",
       score: "ניקוד",
       cancel: "ביטול",
     },
@@ -143,8 +149,11 @@ export const translations: Record<LanguageCode, TranslationDict> = {
   en: {
     common: {
       retake: "Retake",
+      startOver: "Start All Over Again",
       copyText: "Copy text",
       copied: "Copied!",
+      shareProfile: "Share My Profile",
+      linkCopied: "Link copied!",
       score: "Score",
       cancel: "Cancel",
     },

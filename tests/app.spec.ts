@@ -40,7 +40,7 @@ test.describe('Workplace Love Language E2E Tests', () => {
     await englishButton.click({ force: true });
 
     // Verify the mock email is displayed in the TopBar (meaning auth context loaded the mock user successfully)
-    await expect(page.locator('text=test-user@example.com')).toBeVisible();
+    await expect(page.locator('text=test-user@example.com').first()).toBeVisible();
 
     // Verify the role selector title is visible
     await expect(page.locator('text=What is your role?')).toBeVisible();
