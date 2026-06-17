@@ -1,7 +1,7 @@
 import { useState, FormEvent, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { arc } from 'd3-shape';
-import { RotateCcw, HeartHandshake, Copy, Check, FileText, Info, MessageSquareHeart, Coffee, Gift, HelpingHand, Sparkles, Mail, Loader2 } from 'lucide-react';
+import { RotateCcw, HeartHandshake, Copy, Check, FileText, Info, MessageSquareHeart, Coffee, Gift, HelpingHand, Sparkles, Mail, Loader2, Link as LinkIcon } from 'lucide-react';
 import { results as results_en, OptionId } from '../data/quizData';
 import { results_he } from '../data/quizData.he';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -32,9 +32,11 @@ interface ResultScreenProps {
   scores: Record<OptionId, number>;
   userRole?: 'manager' | 'employee';
   onRestart: () => void;
+  resultDocId?: string | null;
+  isSharedView?: boolean;
 }
 
-export function ResultScreen({ resultId, scores, userRole, onRestart }: ResultScreenProps) {
+export function ResultScreen({ resultId, scores, userRole, onRestart, resultDocId, isSharedView = false }: ResultScreenProps) {
   const { language, dir } = useLanguage();
   const t = translations[language];
   const l = legalTranslations[language].footer;
@@ -43,6 +45,7 @@ export function ResultScreen({ resultId, scores, userRole, onRestart }: ResultSc
   const result = results[resultId];
   const [activeTab, setActiveTab] = useState<'analysis' | 'playbook' | 'manual'>('analysis');
   const [copied, setCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   
   const totalAnswers = Object.values(scores).reduce((acc, val) => acc + val, 0) || 1;
   const sortedOptions = (Object.keys(scores) as OptionId[]).sort((a, b) => scores[b] - scores[a]);
@@ -60,6 +63,15 @@ export function ResultScreen({ resultId, scores, userRole, onRestart }: ResultSc
     navigator.clipboard.writeText(manualText).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const handleCopyLink = () => {
+    if (!resultDocId) return;
+    const shareUrl = `${window.location.origin}/?shared=${resultDocId}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
     });
   };
 
@@ -146,14 +158,28 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
 
         <div className="flex items-center gap-2 md:gap-3 z-10 shrink-0 bg-white">
           <LanguageSwitcher className="px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs md:text-sm" compact />
-          <button
-            onClick={onRestart}
-            className="px-3 py-1.5 md:px-4 md:py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs md:text-sm font-bold rounded-xl flex items-center gap-2 transition-all z-10 shrink-0 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-1 active:scale-95 hover:shadow-sm hover:-translate-y-0.5"
-            title={t.common.retake}
-          >
-            <RotateCcw size={16} />
-            <span className="hidden md:inline">{t.common.retake}</span>
-          </button>
+          
+          {resultDocId && !isSharedView && (
+            <button
+              onClick={handleCopyLink}
+              className="px-3 py-1.5 md:px-4 md:py-2 bg-sky-100 hover:bg-sky-200 text-sky-800 text-xs md:text-sm font-bold rounded-xl flex items-center gap-2 transition-all z-10 shrink-0 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-1 active:scale-95 hover:shadow-sm hover:-translate-y-0.5"
+              title={t.common.shareProfile}
+            >
+              {linkCopied ? <Check size={16} className="text-sky-600" /> : <LinkIcon size={16} />}
+              <span className="hidden md:inline">{linkCopied ? t.common.linkCopied : t.common.shareProfile}</span>
+            </button>
+          )}
+
+          {!isSharedView && (
+            <button
+              onClick={onRestart}
+              className="px-3 py-1.5 md:px-4 md:py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs md:text-sm font-bold rounded-xl flex items-center gap-2 transition-all z-10 shrink-0 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-1 active:scale-95 hover:shadow-sm hover:-translate-y-0.5"
+              title={t.common.retake}
+            >
+              <RotateCcw size={16} />
+              <span className="hidden md:inline">{t.common.retake}</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -290,6 +316,15 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
                      )}
                    </>
                  )}
+                  {!isSharedView && (
+                    <button
+                      onClick={onRestart}
+                      className="mt-4 w-full py-3 bg-white/10 hover:bg-white/20 text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-white/50 active:scale-95 shrink-0"
+                    >
+                      <RotateCcw size={16} />
+                      {t.common.startOver}
+                    </button>
+                  )}
                </motion.div>
              )}
 
@@ -321,6 +356,15 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
                    </h4>
                    <p className="text-slate-200 text-sm leading-relaxed">{result.playbook.negativeFeedback}</p>
                  </div>
+                 {!isSharedView && (
+                    <button
+                      onClick={onRestart}
+                      className="w-full py-3 bg-white/10 hover:bg-white/20 text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-white/50 active:scale-95 shrink-0"
+                    >
+                      <RotateCcw size={16} />
+                      {t.common.startOver}
+                    </button>
+                  )}
                </motion.div>
              )}
 
@@ -350,6 +394,17 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
                  <div className="p-5 md:p-6 overflow-y-auto text-sm md:text-base leading-relaxed text-slate-700 whitespace-pre-wrap select-all font-medium  rtl:text-right">
                    {manualText}
                  </div>
+                 {!isSharedView && (
+                    <div className="p-3 px-5 border-t border-slate-200 shrink-0">
+                      <button
+                        onClick={onRestart}
+                        className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-slate-400 active:scale-95"
+                      >
+                        <RotateCcw size={16} />
+                        {t.common.startOver}
+                      </button>
+                    </div>
+                  )}
                </motion.div>
              )}
           </motion.div>

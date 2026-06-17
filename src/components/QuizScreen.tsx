@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { questions as questions_en, OptionId } from '../data/quizData';
@@ -6,6 +6,7 @@ import { questions_he } from '../data/quizData.he';
 import { useLanguage } from '../contexts/LanguageContext';
 import { translations } from '../data/translations';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { saveProgress, getSavedProgress, clearProgress } from '../lib/progressService';
 
 interface QuizScreenProps {
   onComplete: (answers: Record<number, OptionId>) => void;
@@ -24,6 +25,15 @@ export function QuizScreen({ onComplete, userRole = 'employee' }: QuizScreenProp
   const question = questions[currentQuestionIndex];
   const totalQuestions = questions.length;
   const progress = ((currentQuestionIndex + 1) / totalQuestions) * 100;
+
+  // Behavior 4: Load saved progress on mount
+  useEffect(() => {
+    const saved = getSavedProgress();
+    if (saved && saved.userRole === userRole) {
+      setAnswers(saved.answers);
+      setCurrentQuestionIndex(saved.currentQuestionIndex);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const adaptText = (text: string) => {
     let newText = text;
@@ -56,6 +66,10 @@ export function QuizScreen({ onComplete, userRole = 'employee' }: QuizScreenProp
     const newAnswers = { ...answers, [question.id]: optionId };
     setAnswers(newAnswers);
 
+    // Behavior 5: Save progress on each answer
+    const nextIndex = currentQuestionIndex < totalQuestions - 1 ? currentQuestionIndex + 1 : currentQuestionIndex;
+    saveProgress({ answers: newAnswers, currentQuestionIndex: nextIndex, userRole: userRole! });
+
     if (currentQuestionIndex < totalQuestions - 1) {
       setTimeout(() => {
         setCurrentQuestionIndex(prev => prev + 1);
@@ -63,6 +77,7 @@ export function QuizScreen({ onComplete, userRole = 'employee' }: QuizScreenProp
       }, 300);
     } else {
       setTimeout(() => {
+        clearProgress();
         onComplete(newAnswers);
         setIsTransitioning(false);
       }, 300);

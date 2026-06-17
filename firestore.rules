@@ -9,5 +9,13 @@ service cloud.firestore {
       allow read, update: if request.auth != null && request.auth.token.email == 'tsur.david@gmail.com';
       allow delete: if false;
     }
+    
+    match /results/{docId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow get: if true;
+      allow list: if request.auth != null && request.auth.token.email == 'tsur.david@gmail.com';
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow delete: if false;
+    }
   }
 }
