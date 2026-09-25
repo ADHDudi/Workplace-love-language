@@ -10,7 +10,7 @@ import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AdminFeedbackPanel } from './components/AdminFeedbackPanel';
-import { ClipboardList, Loader2, Home } from 'lucide-react';
+import { ClipboardList, Loader2, Home, PieChart } from 'lucide-react';
 import { calculateScores, determinePrimaryStyle } from './lib/scoring';
 import { saveAssessmentResult, getAssessmentResult } from './lib/dbService';
 import { clearProgress } from './lib/progressService';

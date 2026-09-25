@@ -115,7 +115,7 @@ The app will be accessible at `http://localhost:5173`.
 ## 📦 Production Build & Deployment
 
 ### Build the Project
-To compile the static bundle into the `dist/` directory:
+To type-check the project (`tsc --noEmit`) and compile the static bundle into the `dist/` directory. Any type error fails the build, so `./deploy.sh` stops before deploying:
 ```bash
 npm run build
 ```
