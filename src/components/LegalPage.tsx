@@ -2,6 +2,7 @@ import { legalTranslations } from '../data/legalTranslations';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { TopBar } from './TopBar';
 
 type LegalPageProps = {
   pageType: 'terms' | 'privacy' | 'accessibility';
@@ -13,6 +14,7 @@ export function LegalPage({ pageType }: LegalPageProps) {
 
   return (
     <div className="min-h-[100dvh] bg-slate-200 text-slate-900 font-sans flex justify-center items-center p-0 md:p-6 lg:p-12" dir={dir}>
+      <TopBar />
       <div className="w-full max-w-4xl bg-slate-50 shadow-2xl md:rounded-[2.5rem] min-h-[100dvh] md:min-h-0 md:max-h-[850px] relative overflow-y-auto flex flex-col border border-slate-200/60 p-6 md:p-10">
         
         <header className="flex items-center justify-start mb-8 pb-6 border-b border-slate-200">

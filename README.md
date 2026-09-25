@@ -44,8 +44,9 @@ An innovative, bilingual assessment and coaching platform built to evaluate how 
 ├── vite.config.ts               # Vite bundler options
 ├── src/
 │   ├── main.tsx                 # Client entry point
-│   ├── App.tsx                  # Core app container, routing, and top navigation
+│   ├── App.tsx                  # Core app container and routing
 │   ├── components/              # Reusable UI components
+│   │   ├── TopBar.tsx           # Top navigation: sign-in/out and admin controls (one per page)
 │   │   ├── WelcomeScreen.tsx    # Role selector, welcome text, and login gating
 │   │   ├── QuizScreen.tsx       # Live assessment questionnaire
 │   │   ├── ResultScreen.tsx     # Custom radial SVGs and Gemini coaching analysis

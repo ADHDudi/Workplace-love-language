@@ -138,4 +138,32 @@ test.describe('Workplace Love Language E2E Tests', () => {
     await expect(page.locator('h1')).toContainText('שפת האהבה');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
   });
+
+  test('should render a single top bar whose admin controls work on the home and legal pages', async ({ page }) => {
+    // Inject the admin mock user before the page loads
+    await page.addInitScript(() => {
+      (window as any).__E2E_MOCK_USER__ = {
+        uid: 'test-admin-123',
+        email: 'tsur.david@gmail.com',
+        displayName: 'Test Admin',
+      };
+    });
+
+    await page.goto('/');
+
+    // Only one TopBar is mounted, so each control appears exactly once
+    await expect(page.locator('button:has-text("Dashboard")')).toHaveCount(1);
+    await expect(page.locator('button:has-text("Manage Feedback")')).toHaveCount(1);
+    await expect(page.locator('button:has-text("Sign Out")')).toHaveCount(1);
+
+    // The Dashboard button switches the home page to the Team Dashboard
+    await page.click('button:has-text("Dashboard")');
+    await expect(page.locator('text=Team Dashboard')).toBeVisible();
+
+    // Legal pages render their own TopBar, without the home-only Dashboard button
+    await page.goto('/terms');
+    await expect(page.locator('button:has-text("Sign Out")')).toHaveCount(1);
+    await expect(page.locator('button:has-text("Manage Feedback")')).toHaveCount(1);
+    await expect(page.locator('button:has-text("Dashboard")')).toHaveCount(0);
+  });
 });
