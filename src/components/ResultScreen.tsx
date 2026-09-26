@@ -1,4 +1,4 @@
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent, useEffect, ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { arc } from 'd3-shape';
 import { RotateCcw, HeartHandshake, Copy, Check, FileText, Info, MessageSquareHeart, Coffee, Gift, HelpingHand, Sparkles, Mail, Loader2, Link as LinkIcon } from 'lucide-react';
@@ -34,9 +34,10 @@ interface ResultScreenProps {
   onRestart: () => void;
   resultDocId?: string | null;
   isSharedView?: boolean;
+  accountActions?: ReactNode;
 }
 
-export function ResultScreen({ resultId, scores, userRole, onRestart, resultDocId, isSharedView = false }: ResultScreenProps) {
+export function ResultScreen({ resultId, scores, userRole, onRestart, resultDocId, isSharedView = false, accountActions }: ResultScreenProps) {
   const { language, dir } = useLanguage();
   const t = translations[language];
   const l = legalTranslations[language].footer;
@@ -180,6 +181,8 @@ Keep the tone professional, empowering, and empathetic. Write the response in ${
               <span className="hidden md:inline">{t.common.retake}</span>
             </button>
           )}
+
+          {accountActions}
         </div>
       </header>
 

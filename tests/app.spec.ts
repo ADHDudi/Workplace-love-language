@@ -138,4 +138,48 @@ test.describe('Workplace Love Language E2E Tests', () => {
     await expect(page.locator('h1')).toContainText('שפת האהבה');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
   });
+
+  test.describe('Toolbar (JUS-425)', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.addInitScript(() => {
+        (window as any).__E2E_MOCK_USER__ = {
+          uid: 'admin-user',
+          email: 'tsur.david@gmail.com',
+          displayName: 'Admin',
+        };
+      });
+    });
+
+    test('signed-in user sees a single account bar on the welcome screen', async ({ page }) => {
+      await page.goto('/');
+      await page.locator('button:has-text("English")').click({ force: true });
+      await expect(page.locator('text=What is your role?')).toBeVisible();
+
+      await expect(page.getByRole('button', { name: 'Sign Out' })).toHaveCount(1);
+      await expect(page.getByRole('button', { name: 'Manage Feedback' })).toHaveCount(1);
+    });
+
+    test('result screen has a single toolbar holding the account actions', async ({ page }) => {
+      await page.goto('/');
+      await page.locator('button:has-text("English")').click({ force: true });
+      await page.click('button:has-text("Individual Contributor")');
+      await page.click('button:has-text("Start Free Analysis")');
+      for (let q = 1; q <= 9; q++) {
+        await expect(page.locator(`text=Question ${q} of 9`)).toBeVisible();
+        await page.locator('button.w-full.text-start').first().click();
+      }
+      await expect(page.locator('text=Primary Language')).toBeVisible();
+
+      const resultToolbar = page.getByRole('banner').filter({ has: page.getByRole('button', { name: 'Retake' }) });
+      await expect(resultToolbar).toHaveCount(1);
+
+      for (const name of ['Sign Out', 'Dashboard', 'Manage Feedback']) {
+        await expect(page.getByRole('button', { name })).toHaveCount(1);
+        await expect(resultToolbar.getByRole('button', { name })).toBeVisible();
+      }
+
+      await resultToolbar.getByRole('button', { name: 'Dashboard' }).click();
+      await expect(page.locator('text=Team Dashboard')).toBeVisible();
+    });
+  });
 });
