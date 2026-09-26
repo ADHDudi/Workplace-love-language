@@ -11,8 +11,8 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test": "node scripts/e2e.mjs",
+    "test:e2e": "node scripts/e2e.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.52.0",
@@ -37,7 +37,6 @@
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.3",
-    "vitest": "^4.1.8"
+    "vite": "^6.2.3"
   }
 }
