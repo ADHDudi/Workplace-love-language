@@ -9,8 +9,8 @@ import { OptionId } from './data/quizData';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { AdminFeedbackPanel } from './components/AdminFeedbackPanel';
-import { ClipboardList, Loader2, Home, PieChart } from 'lucide-react';
+import { AccountActions } from './components/AccountActions';
+import { Loader2, Home } from 'lucide-react';
 import { calculateScores, determinePrimaryStyle } from './lib/scoring';
 import { saveAssessmentResult, getAssessmentResult } from './lib/dbService';
 import { clearProgress } from './lib/progressService';
@@ -18,46 +18,10 @@ import { clearProgress } from './lib/progressService';
 export type AppState = 'welcome' | 'quiz' | 'result' | 'shared-result' | 'team-dashboard';
 
 function TopBar({ onOpenDashboard }: { onOpenDashboard?: () => void }) {
-  const { user, isAdmin, signInWithGoogle, logout } = useAuth();
-  const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
-
   return (
-    <>
-      <div className="fixed top-0 left-0 right-0 h-10 md:h-14 bg-white/80 backdrop-blur-md border-b border-slate-200 z-40 flex items-center justify-end px-3 md:px-6 gap-2 md:gap-4">
-        {isAdmin && (
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={onOpenDashboard}
-              className="text-xs md:text-sm font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center gap-1.5"
-            >
-              <PieChart size={14} />
-              <span className="hidden md:inline">Dashboard</span>
-            </button>
-            <button 
-              onClick={() => setIsAdminPanelOpen(true)}
-              className="text-xs md:text-sm font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500 flex items-center gap-1.5"
-            >
-              <ClipboardList size={14} />
-              <span className="hidden md:inline">Manage Feedback</span>
-            </button>
-          </div>
-        )}
-        
-        {user ? (
-          <div className="flex items-center gap-2 md:gap-3">
-            <span className="text-xs md:text-sm text-slate-600 hidden md:inline" dir="ltr">{user.email}</span>
-            <button onClick={logout} className="text-xs md:text-sm font-bold text-slate-700 hover:text-slate-900 bg-slate-100 px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400">
-              Sign Out
-            </button>
-          </div>
-        ) : (
-          <button onClick={signInWithGoogle} className="text-xs md:text-sm font-bold text-white bg-sky-600 hover:bg-sky-700 px-3 md:px-4 py-1 md:py-1.5 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
-            Sign In
-          </button>
-        )}
-      </div>
-      <AdminFeedbackPanel isOpen={isAdminPanelOpen} onClose={() => setIsAdminPanelOpen(false)} />
-    </>
+    <div className="fixed top-0 left-0 right-0 h-10 md:h-14 bg-white/80 backdrop-blur-md border-b border-slate-200 z-40 flex items-center justify-end px-3 md:px-6 gap-2 md:gap-4">
+      <AccountActions onOpenDashboard={onOpenDashboard} />
+    </div>
   );
 }
 
@@ -140,9 +104,16 @@ function MainApp() {
     }
   };
 
+  const openDashboard = () => setAppState('team-dashboard');
+  // The result screen has its own header, which hosts the account actions instead of the global TopBar.
+  const isShowingResult =
+    (appState === 'result' && !!finalResult) ||
+    (appState === 'shared-result' && !isLoadingShared && !sharedError && !!finalResult);
+  const accountActions = <AccountActions onOpenDashboard={openDashboard} showEmail={false} />;
+
   return (
-    <div className="min-h-[100dvh] pt-10 md:pt-14 bg-slate-200 text-slate-900 font-sans flex justify-center items-center p-0 md:p-6 lg:p-12" dir={dir}>
-      <TopBar onOpenDashboard={() => setAppState('team-dashboard')} />
+    <div className={`min-h-[100dvh] ${isShowingResult ? '' : 'pt-10 md:pt-14'} bg-slate-200 text-slate-900 font-sans flex justify-center items-center p-0 md:p-6 lg:p-12`} dir={dir}>
+      {!isShowingResult && <TopBar onOpenDashboard={openDashboard} />}
       <div className="w-full max-w-5xl bg-slate-50 shadow-2xl md:rounded-[2.5rem] min-h-[100dvh] md:min-h-0 md:aspect-[4/3] md:max-h-[850px] relative overflow-hidden flex flex-col border border-slate-200/60 mt-10 md:mt-0">
         <AnimatePresence mode="wait">
           {appState === 'welcome' && (
@@ -178,7 +149,7 @@ function MainApp() {
               transition={{ duration: 0.4 }}
               className="absolute inset-0 flex flex-col bg-slate-50"
             >
-              <ResultScreen resultId={finalResult} scores={scores} onRestart={restart} userRole={userRole} resultDocId={resultDocId} />
+              <ResultScreen resultId={finalResult} scores={scores} onRestart={restart} userRole={userRole} resultDocId={resultDocId} accountActions={accountActions} />
             </motion.div>
           )}
           {appState === 'shared-result' && (
@@ -207,7 +178,7 @@ function MainApp() {
                   </button>
                 </div>
               ) : (
-                <ResultScreen resultId={finalResult} scores={scores} onRestart={restart} userRole={userRole} isSharedView={true} />
+                <ResultScreen resultId={finalResult} scores={scores} onRestart={restart} userRole={userRole} isSharedView={true} accountActions={accountActions} />
               )}
             </motion.div>
           )}
@@ -232,12 +203,11 @@ function MainApp() {
 function AppContent() {
   return (
     <BrowserRouter>
-      <TopBar />
       <Routes>
         <Route path="/" element={<MainApp />} />
-        <Route path="/terms" element={<LegalPage pageType="terms" />} />
-        <Route path="/privacy" element={<LegalPage pageType="privacy" />} />
-        <Route path="/accessibility" element={<LegalPage pageType="accessibility" />} />
+        <Route path="/terms" element={<><TopBar /><LegalPage pageType="terms" /></>} />
+        <Route path="/privacy" element={<><TopBar /><LegalPage pageType="privacy" /></>} />
+        <Route path="/accessibility" element={<><TopBar /><LegalPage pageType="accessibility" /></>} />
       </Routes>
     </BrowserRouter>
   );
