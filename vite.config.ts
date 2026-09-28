@@ -2,7 +2,6 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig, loadEnv} from 'vite';
-import {configDefaults} from 'vitest/config';
 
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
@@ -20,16 +19,6 @@ export default defineConfig(({mode}) => {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
-    },
-    test: {
-      exclude: [
-        ...configDefaults.exclude,
-        // Playwright e2e specs (see playwright.config.ts), run by `npm run test:e2e`.
-        'tests/**/*.spec.ts',
-        // Claude Code worktrees: full checkouts of other branches. Vitest globs
-        // dot-directories, so it would otherwise collect their tests too.
-        '.claude/**',
-      ],
     },
   };
 });
