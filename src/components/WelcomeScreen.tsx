@@ -43,7 +43,7 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-5xl flex items-center justify-start mb-4 md:mb-10 shrink-0"
+        className="w-full max-w-5xl flex items-center justify-start mb-4 md:mb-4 shrink-0"
       >
         <div className="z-10" dir={language === 'he' ? 'rtl' : 'ltr'}>
           <LanguageSwitcher className="px-3 md:px-4 py-1.5 md:py-2 rounded-full lg:shadow-sm transition-transform active:scale-95" />
@@ -56,20 +56,20 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
         animate="show"
         className="flex-1 w-full max-w-lg flex flex-col items-center justify-center shrink-0"
       >
-        <motion.div variants={itemVariants} className="w-14 h-14 md:w-20 md:h-20 rounded-[var(--r-xl)] flex items-center justify-center mb-3 md:mb-6 text-[var(--accent)] shadow-sm shrink-0" style={{ background: 'var(--brand-gradient-soft)' }}>
+        <motion.div variants={itemVariants} className="w-14 h-14 md:w-20 md:h-20 rounded-[var(--r-xl)] flex items-center justify-center mb-3 md:mb-4 text-[var(--accent)] shadow-sm shrink-0" style={{ background: 'var(--brand-gradient-soft)' }}>
           <HeartHandshake className="w-7 h-7 md:w-10 md:h-10" />
         </motion.div>
         
-        <motion.h1 variants={itemVariants} className="h1 mb-2 md:mb-4 text-center">
+        <motion.h1 variants={itemVariants} className="h1 mb-2 md:mb-2 text-center">
           {t.welcome.title} <br className="hidden min-[400px]:block" /> 
           <span className="gradient-text">{t.welcome.subtitle}</span>
         </motion.h1>
         
-        <motion.p variants={itemVariants} className="body-sm md:body mb-4 md:mb-8 w-full px-2 text-center max-w-prose">
+        <motion.p variants={itemVariants} className="body-sm md:body mb-4 md:mb-4 w-full px-2 text-center max-w-prose">
           {t.welcome.description}
         </motion.p>
         
-        <motion.div variants={itemVariants} className="bg-card p-5 md:p-6 rounded-[var(--r-xl)] mb-6 md:mb-10 w-full border border-[var(--border)] shadow-md text-left rtl:text-right shrink-0">
+        <motion.div variants={itemVariants} className="bg-card p-5 md:p-6 rounded-[var(--r-xl)] mb-6 md:mb-5 w-full border border-[var(--border)] shadow-md text-left rtl:text-right shrink-0">
           <h3 className="h3 mb-3 text-sm md:text-base">
             {t.welcome.valueProp}
           </h3>
@@ -95,7 +95,7 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
         </motion.div>
 
         {user && (
-          <motion.div variants={itemVariants} className="w-full mb-8">
+          <motion.div variants={itemVariants} className="w-full mb-4 md:mb-6">
             <h4 className="body-sm font-semibold mb-3 text-center">
               {t.welcome.roleSelector.title}
             </h4>
@@ -127,14 +127,14 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
         )}
 
         {!user ? (
-          <motion.div variants={itemVariants} className="w-full mb-8">
+          <motion.div variants={itemVariants} className="w-full mb-4 md:mb-6">
             <LoginCard />
           </motion.div>
         ) : (
           <motion.button
             variants={itemVariants}
             onClick={() => onStart(selectedRole)}
-            className="w-full py-4 px-8 text-[var(--paper)] font-bold rounded-[var(--r-lg)] transition-all hover:-translate-y-0.5 active:scale-95 active:shadow-sm animate-pulse-slow flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 shrink-0 mb-8"
+            className="w-full py-4 px-8 text-[var(--paper)] font-bold rounded-[var(--r-lg)] transition-all hover:-translate-y-0.5 active:scale-95 active:shadow-sm animate-pulse-slow flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 shrink-0 mb-4 md:mb-6"
             style={{ background: 'var(--brand-gradient)', boxShadow: 'var(--shadow-brand-md)' }}
             whileHover={{ boxShadow: 'var(--shadow-brand-lg)' }}
             aria-label={t.welcome.takeQuiz}
@@ -143,7 +143,7 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
           </motion.button>
         )}
 
-        <motion.footer variants={itemVariants} className="mt-auto pt-6 border-t border-[var(--border-faint)] w-full flex flex-col items-center gap-6 text-xs text-[var(--fg-muted)] pb-4">
+        <motion.footer variants={itemVariants} className="mt-auto pt-4 md:pt-4 border-t border-[var(--border-faint)] w-full flex flex-col items-center gap-4 text-xs text-[var(--fg-muted)] pb-4">
           <a 
             href="https://justaiit.web.app/#app=workplace-love-language" 
             target="_blank" 
