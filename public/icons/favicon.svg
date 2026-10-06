@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Workplace Love Language">
+  <title>Workplace Love Language</title>
+  <defs>
+    <!-- Heart: the signature brand gradient (brand-gradient token), violet top-left to cyan bottom-right -->
+    <linearGradient id="heart" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a014f0"/>
+      <stop offset="0.28" stop-color="#8c50f0"/>
+      <stop offset="0.58" stop-color="#5078ff"/>
+      <stop offset="1" stop-color="#3cdcf0"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.55" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Hands: brand indigo at the fingers to brand violet at the wrist -->
+    <linearGradient id="hand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5078ff"/>
+      <stop offset="1" stop-color="#8c50f0"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(256 256) scale(1.32) translate(-256 -311)">
+    <path d="M256 345 C236 330 136 268 136 205 C136 172 162 148 194 148 C222 148 244 164 256 186 C268 164 290 148 318 148 C350 148 376 172 376 205 C376 268 276 330 256 345 Z" fill="url(#heart)" stroke="url(#heart)" stroke-width="16" stroke-linejoin="round"/>
+    <path id="left-hand" d="M160 482 C140 440 104 398 90 352 C78 322 74 292 74 262 C74 238 86 222 106 222 C126 222 138 238 138 260 C138 280 140 296 146 306 C154 320 172 328 194 332 C216 336 234 342 244 356 C256 372 252 400 242 420 C238 436 234 456 234 478 Z" fill="url(#hand)"/>
+    <use href="#left-hand" transform="translate(512 0) scale(-1 1)"/>
+  </g>
+</svg>

@@ -40,6 +40,7 @@ An innovative, bilingual assessment and coaching platform built to evaluate how 
 ├── firebase.json                # Hosting redirects, rewrites, and security config
 ├── firestore.rules              # Firestore data protection rules
 ├── package.json                 # Dependency list and script commands
+├── public/icons/                # App icon master SVGs and the PNGs generated from them
 ├── server.ts                    # Local server launcher (supports tsx execution)
 ├── vite.config.ts               # Vite bundler options
 ├── src/
@@ -124,6 +125,12 @@ npm run build
 To preview the production bundle locally:
 ```bash
 npm run preview
+```
+
+### Regenerate the App Icons
+The app icon is drawn in four master SVGs in `public/icons/` (`icon.svg`, `icon-maskable.svg`, `icon-small.svg`, `icon-mark.svg`). After editing any of them, regenerate the favicons, iOS touch icon and manifest icons, and commit the output:
+```bash
+npm run icons
 ```
 
 ### Deploy to Firebase
