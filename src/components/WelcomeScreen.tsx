@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { HeartHandshake, CheckCircle2, User, Users } from 'lucide-react';
+import { CheckCircle2, User, Users } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { translations } from '../data/translations';
 import { legalTranslations } from '../data/legalTranslations';
@@ -56,8 +56,8 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
         animate="show"
         className="flex-1 w-full max-w-lg flex flex-col items-center justify-center shrink-0"
       >
-        <motion.div variants={itemVariants} className="w-14 h-14 md:w-20 md:h-20 rounded-[var(--r-xl)] flex items-center justify-center mb-3 md:mb-4 text-[var(--accent)] shadow-sm shrink-0" style={{ background: 'var(--brand-gradient-soft)' }}>
-          <HeartHandshake className="w-7 h-7 md:w-10 md:h-10" />
+        <motion.div variants={itemVariants} className="w-14 h-14 md:w-20 md:h-20 rounded-[var(--r-xl)] flex items-center justify-center mb-3 md:mb-4 shadow-sm shrink-0" style={{ background: 'var(--brand-gradient-soft)' }}>
+          <img src="/icons/icon-mark.svg" alt={t.welcome.logoAlt} width={52} height={52} className="w-9 h-9 md:w-13 md:h-13" />
         </motion.div>
         
         <motion.h1 variants={itemVariants} className="h1 mb-2 md:mb-2 text-center">

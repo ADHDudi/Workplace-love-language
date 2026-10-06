@@ -12,6 +12,7 @@ export interface TranslationDict {
     cancel: string;
   };
   welcome: {
+    logoAlt: string;
     title: string;
     subtitle: string;
     description: string;
@@ -84,6 +85,7 @@ export const translations: Record<LanguageCode, TranslationDict> = {
       cancel: "ביטול",
     },
     welcome: {
+      logoAlt: "הלוגו של שפת האהבה בעבודה",
       title: "שפת האהבה",
       subtitle: "בעבודה",
       description: "גלה/י מה באמת מניע אותך בעבודה ושפר/י את התקשורת עם הצוות.",
@@ -158,6 +160,7 @@ export const translations: Record<LanguageCode, TranslationDict> = {
       cancel: "Cancel",
     },
     welcome: {
+      logoAlt: "Workplace Love Language logo",
       title: "Workplace",
       subtitle: "Love Language",
       description: "Discover what truly drives you at work and improve your team communication.",
