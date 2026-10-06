@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Workplace Love Language">
+  <title>Workplace Love Language</title>
+  <defs>
+    <!-- Heart: the signature brand gradient (brand-gradient token), violet top-left to cyan bottom-right -->
+    <linearGradient id="heart" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a014f0"/>
+      <stop offset="0.28" stop-color="#8c50f0"/>
+      <stop offset="0.58" stop-color="#5078ff"/>
+      <stop offset="1" stop-color="#3cdcf0"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.55" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Hands: brand indigo at the fingers to brand violet at the wrist -->
+    <linearGradient id="hand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5078ff"/>
+      <stop offset="1" stop-color="#8c50f0"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#ffffff"/>
+  <g transform="translate(256 259) scale(0.86) translate(-256 -263)">
+    <g stroke-linecap="round" stroke-width="16" opacity="0.65">
+      <line x1="256" y1="92" x2="256" y2="54" stroke="#3cdcf0"/>
+      <line x1="172" y1="116" x2="152" y2="84" stroke="#3ca0f0"/>
+      <line x1="340" y1="116" x2="360" y2="84" stroke="#3ca0f0"/>
+      <line x1="114" y1="170" x2="82" y2="152" stroke="#3cdcf0"/>
+      <line x1="398" y1="170" x2="430" y2="152" stroke="#3cdcf0"/>
+    </g>
+    <path d="M256 345 C236 330 136 268 136 205 C136 172 162 148 194 148 C222 148 244 164 256 186 C268 164 290 148 318 148 C350 148 376 172 376 205 C376 268 276 330 256 345 Z" fill="url(#heart)" stroke="url(#heart)" stroke-width="10" stroke-linejoin="round"/>
+    <path d="M256 345 C236 330 136 268 136 205 C136 172 162 148 194 148 C222 148 244 164 256 186 C268 164 290 148 318 148 C350 148 376 172 376 205 C376 268 276 330 256 345 Z" fill="url(#glow)"/>
+    <g id="left-hand">
+      <path d="M166 480 C146 440 114 398 100 352 C90 324 86 296 86 268 C86 246 94 232 106 232 C118 232 126 244 126 262 C126 282 128 300 134 312 C142 326 160 334 182 338 C204 342 222 346 234 352 C248 360 251 377 240 384 C250 391 250 406 238 411 C246 419 244 432 233 437 C230 452 228 464 228 476 Z" fill="url(#hand)"/>
+      <g fill="none" stroke="#ffffff" stroke-opacity="0.5" stroke-width="4" stroke-linecap="round">
+        <path d="M240 384 C228 380 216 377 204 376"/>
+        <path d="M238 411 C227 407 217 404 207 403"/>
+      </g>
+    </g>
+    <use href="#left-hand" transform="translate(512 0) scale(-1 1)"/>
+  </g>
+</svg>
