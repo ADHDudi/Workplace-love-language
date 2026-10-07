@@ -18,9 +18,10 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
+    // ~95% of real users are on phones (mostly iPhone Safari), so the whole suite runs in a mobile viewport
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'mobile',
+      use: { ...devices['iPhone 13'], defaultBrowserType: 'chromium' },
     },
   ],
   // Reuse the already running dev server on port 3000; no server needed for a deployed environment

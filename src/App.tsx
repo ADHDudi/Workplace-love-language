@@ -114,7 +114,7 @@ function MainApp() {
   return (
     <div className={`min-h-[100dvh] ${isShowingResult ? '' : 'pt-10 md:pt-14'} bg-slate-200 text-slate-900 font-sans flex justify-center items-center p-0 md:p-6 lg:p-12`} dir={dir}>
       {!isShowingResult && <TopBar onOpenDashboard={openDashboard} />}
-      <div className="w-full max-w-5xl bg-slate-50 shadow-2xl md:rounded-[2.5rem] min-h-[100dvh] md:min-h-0 md:aspect-[4/3] md:max-h-[850px] relative overflow-hidden flex flex-col border border-slate-200/60 mt-10 md:mt-0">
+      <div className={`w-full max-w-5xl bg-slate-50 shadow-2xl md:rounded-[2.5rem] ${isShowingResult ? 'min-h-[100dvh]' : 'min-h-[calc(100dvh-2.5rem)]'} md:min-h-0 md:aspect-[4/3] md:max-h-[850px] relative overflow-hidden flex flex-col border border-slate-200/60`}>
         <AnimatePresence mode="wait">
           {appState === 'welcome' && (
             <motion.div
