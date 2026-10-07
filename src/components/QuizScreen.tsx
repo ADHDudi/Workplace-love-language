@@ -146,7 +146,7 @@ export function QuizScreen({ onComplete, userRole = 'employee' }: QuizScreenProp
               className="flex flex-col h-full"
             >
               {/* Question card — capped height on mobile so answers always peek */}
-              <div className="bg-[var(--bg-card)] rounded-[var(--r-xl)] border border-[var(--border)] shadow-[var(--shadow-sm)] p-4 md:p-8 mb-4 md:mb-6 max-h-[38vh] md:max-h-none overflow-y-auto">
+              <div className="bg-[var(--bg-card)] rounded-[var(--r-xl)] border border-[var(--border)] shadow-[var(--shadow-sm)] p-4 md:p-8 mb-4 md:mb-6 shrink-0 max-h-[38vh] md:max-h-none overflow-y-auto">
                 <h2
                   className={`text-center md:text-start font-bold leading-snug ${
                     adaptText(question.text).length > 120

@@ -226,8 +226,10 @@ test.describe('Toolbar (JUS-425)', () => {
     await page.goto('/');
     await switchToEnglish(page);
     await expect(page.locator('text=What is your role?')).toBeVisible();
-    await expect(page.locator(`text=${ADMIN.email}`)).toBeVisible();
+    // The account bar drops the email on phones to save space
+    await expect(page.locator(`text=${ADMIN.email}`)).toBeHidden();
 
+    await expect(page.getByRole('button', { name: 'Sign Out' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Sign Out' })).toHaveCount(1);
     await expect(page.getByRole('button', { name: 'Manage Feedback' })).toHaveCount(1);
   });
